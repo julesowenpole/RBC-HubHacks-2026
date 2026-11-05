@@ -48,8 +48,8 @@ videoInput.addEventListener("change", function() {
 
 // apply the slider values as CSS filters on the video
 function applyFilters() {
-    const b = 1 + brightness.value / 100;   // -100..100 becomes 0..2
-    const c = contrast.value / 100;
+    const b = 1 + brightness.value / 100;
+    const c = 1 + contrast.value / 100;
 
     const exposureStops = (exposure.value - DEFAULT_VALUE) / 100;   // -1 to +1 stops
 
