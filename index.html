@@ -3,38 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>Fish Eye | Video editor</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo+Narrow:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
-        <h1>FishEye</h1>
-    </header>
-
-    <div>
-        <h2>Video editor</h2>
+    <header class="site-header">
+        <a class="logo" href="index.html" aria-label="Fish Eye home">Fish Eye<span class="logo-dot">.</span></a>
 
         <div id="upload">
-            <input type="file" id="video-upload">
+            <input type="file" id="video-upload" accept="video/*">
+            <label class="upload-btn" for="video-upload">Upload video</label>
         </div>
+    </header>
 
-        <video width="640" height="360" controls id="video-player">
-            <source src="" type="video/mp4"> <!-- should add a prompt to upload a video here -->
-        </video>
-    </div>
+    <main class="workspace" id="workspace">
 
-    <div id="adjustments">
-        <label>
-            Brightness: <span id="brightness-value">100</span>%
-            <input type="range" id="brightness" min="0" max="200" value="100">
-        </label>
-        <br>
-        <label>
-            Contrast: <span id="contrast-value">100</span>%
-            <input type="range" id="contrast" min="0" max="500" value="100">
-        </label>
-        <br>
-        <button id="reset-adjustments">Reset</button>
-    </div>
+        <section class="editor" aria-label="Video editor">
+            <div class="video-frame">
+                <div class="video-placeholder" id="video-placeholder">
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="5" width="13" height="14" rx="2"/>
+                        <path d="M16 10l5-3v10l-5-3z"/>
+                    </svg>
+                    <p class="title">No video loaded</p>
+                    <p class="hint">Upload a video to start editing and counting fish.</p>
+                </div>
+                <video controls id="video-player" hidden></video>
+            </div>
+
+            <div class="controls">
+                <div class="controls-head">
+                    <h2 class="controls-title">Adjust</h2>
+                    <button type="button" class="reset-btn" id="reset-adjustments">Reset</button>
+                </div>
+
+                <div class="control-panel" id="panel-adjust">
+                    <div class="slider-row">
+                        <label for="brightness">Brightness</label>
+                        <input type="range" id="brightness" min="-100" max="100" value="0">
+                        <output id="brightness-value" for="brightness">0</output>
+                    </div>
+                    <div class="slider-row">
+                        <label for="contrast">Contrast</label>
+                        <input type="range" id="contrast" min="-100" max="100" value="0">
+                        <output id="contrast-value" for="contrast">0</output>
+                    </div>
+                    <div class="slider-row">
+                        <label for="exposure">Exposure</label>
+                        <input type="range" id="exposure" min="-100" max="100" value="0">
+                        <output id="exposure-value" for="exposure">0</output>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <aside class="info-panel" aria-label="Detection results">
+            <h2>Number of fish</h2>
+            <div class="stat">
+                <span class="stat-value" id="fish-count">&mdash;</span>
+                <span class="stat-label">detected in current video</span>
+            </div>
+            <p class="info-note" id="info-text">Counts will appear here once a video is analysed.</p>
+        </aside>
+    </main>
 
     <script src="script.js"></script>
 </body>
