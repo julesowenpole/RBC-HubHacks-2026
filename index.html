@@ -13,9 +13,15 @@
     <div>
         <h2>Video editor</h2>
 
-        <video width="640" height="360" controls>
-            <source src="test_video_salmon.mp4" type="video/mp4">
+        <div id="upload">
+            <input type="file" id="video-upload">
+        </div>
+
+        <video width="640" height="360" controls id="video-player">
+            <source src="" type="video/mp4">
         </video>
     </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
