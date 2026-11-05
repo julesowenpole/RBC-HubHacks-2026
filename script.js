@@ -58,7 +58,6 @@ function applyFilters() {
 
     videoPlayer.style.filter =
         `brightness(${totalBrightness.toFixed(3)}) contrast(${totalContrast.toFixed(3)})`;
-
     brightnessValue.textContent = brightness.value;
     contrastValue.textContent = contrast.value;
     exposureValue.textContent = exposure.value;
