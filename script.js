@@ -1,15 +1,17 @@
+// constants for video upload and play functionality
 const videoInput = document.getElementById("video-upload");
 const videoPlayer = document.getElementById("video-player");
 const videoPlaceholder = document.getElementById("video-placeholder");
 
+// constants for filters
 const brightness = document.getElementById("brightness");
 const contrast = document.getElementById("contrast");
 const exposure = document.getElementById("exposure");
-
 const brightnessValue = document.getElementById("brightness-value");
 const contrastValue = document.getElementById("contrast-value");
 const exposureValue = document.getElementById("exposure-value");
 
+// constant for reset button
 const resetButton = document.getElementById("reset-adjustments");
 
 // brightness runs -100 to 100 (0 = no change)
@@ -22,8 +24,8 @@ function defaultFor(slider) {
     return slider ===  DEFAULT_VALUE;
 }
 
+// listener for button to upload file
 let currentURL = null;
-
 videoInput.addEventListener("change", function() {
 
     const file = this.files[0]; // note: assumption is that there is only ever one video uploaded - may need to change this later
@@ -58,11 +60,13 @@ function applyFilters() {
 
     videoPlayer.style.filter =
         `brightness(${totalBrightness.toFixed(3)}) contrast(${totalContrast.toFixed(3)})`;
+
     brightnessValue.textContent = brightness.value;
     contrastValue.textContent = contrast.value;
     exposureValue.textContent = exposure.value;
 }
 
+// listeners for sliders
 sliders.forEach(function(slider) {
     slider.addEventListener("input", applyFilters);
 
@@ -73,6 +77,7 @@ sliders.forEach(function(slider) {
     });
 });
 
+// listener for reset button
 resetButton.addEventListener("click", function() {
     sliders.forEach(function(slider) {
         slider.value = defaultFor(slider);
