@@ -1,11 +1,11 @@
 import cv2
 from flask import Flask, send_file
 
-def processVideo(INPUT_VIDEO, OUTPUT_VIDEO):
-    videoCap = cv2.VideoCapture(INPUT_VIDEO)
+def processVideo(input_video, output_video):
+    videoCap = cv2.VideoCapture(input_video)
 
     if not videoCap.isOpened():
-        raise FileNotFoundError(f"Could not open {INPUT_VIDEO}")
+        raise FileNotFoundError(f"Could not open {input_video}")
 
     # Get video properties
     width = int(videoCap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -16,7 +16,7 @@ def processVideo(INPUT_VIDEO, OUTPUT_VIDEO):
     fourcc = cv2.VideoWriter_fourcc(*'avc1')
 
     writer = cv2.VideoWriter(
-        OUTPUT_VIDEO,
+        output_video,
         fourcc,
         fps,
         (width, height)
@@ -56,7 +56,7 @@ def processVideo(INPUT_VIDEO, OUTPUT_VIDEO):
     writer.release()
     cv2.destroyAllWindows()
 
-    print(f"Saved enhanced video to {OUTPUT_VIDEO}")
+    print(f"Saved enhanced video to {output_video}")
 
 INPUT_PATH = "test-media/turkey_water.mp4"
 OUTPUT_PATH = "output_clahe.mp4"
