@@ -81,13 +81,28 @@ function showVideo(file) {
 // event listeners for video upload
 uploadButton.addEventListener("click", () => videoInput.click());
 
+// functionality for video processing endpoint
+videoInput.addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    const formData = new FormData();
+    formData.append("video", file);
 
-videoInput.addEventListener("change", async function () {
-    const file = this.files[0];
-    if (!file) return;
+    const response = await fetch("/process-video", {
+        method: "POST",
+        body: formData
+    });
 
-    showVideo(file);
+    const data = await response.json();
 
+    // will only proceed beyond this point when the video has finished processing
+    console.log(data.video_url);
+
+    // change source of the video and get the page ready to play it
+    videoPlayer.src = data.video_url + "?t=" + Date.now();
+    videoPlayer.hidden = false;
+    videoPlaceholder.hidden = true;
+
+    // this is for indexedDB purposes
     try {
         await saveVideo(file);
     } catch (err) {
