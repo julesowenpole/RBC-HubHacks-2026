@@ -1,7 +1,7 @@
 import cv2
 import flask
 
-INPUT_VIDEO = "test_video_murky.mp4"
+INPUT_VIDEO = "test-media/turkey_water.mp4"
 OUTPUT_VIDEO = "output_clahe.mp4"
 
 videoCap = cv2.VideoCapture(INPUT_VIDEO)
