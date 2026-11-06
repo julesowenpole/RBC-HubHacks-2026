@@ -71,7 +71,6 @@ body {
     padding: 10px 22px;
     background: var(--amber);
     border-radius: 999px;
-    color: #1A3644;
     font-family: var(--font-ui);
     font-size: 0.92rem;
     font-weight: 600;
@@ -79,7 +78,7 @@ body {
     transition: background 0.15s ease, transform 0.15s ease;
 }
 #upload:hover .upload-btn { background: #f2bd68; }
-#upload:focus-within .upload-btn { outline: 2px solid var(--blue); outline-offset: 3px; }
+
 
 /* ---------- Layout ---------- */
 .workspace {
