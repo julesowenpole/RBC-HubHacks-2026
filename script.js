@@ -2,6 +2,7 @@
 const videoInput = document.getElementById("video-upload");
 const videoPlayer = document.getElementById("video-player");
 const videoPlaceholder = document.getElementById("video-placeholder");
+const uploadButton = document.getElementById("upload-btn");
 
 // constants for filters
 const brightness = document.getElementById("brightness");
@@ -77,6 +78,10 @@ function showVideo(file) {
     videoPlaceholder.hidden = true;
 }
 
+// event listeners for video upload
+uploadButton.addEventListener("click", () => videoInput.click());
+
+
 videoInput.addEventListener("change", async function () {
     const file = this.files[0];
     if (!file) return;
@@ -88,6 +93,8 @@ videoInput.addEventListener("change", async function () {
     } catch (err) {
         console.error("Could not save video:", err);
     }
+
+    this.value = ""; // allows re-selecting the same file
 });
 
 // restore the saved video on page load
