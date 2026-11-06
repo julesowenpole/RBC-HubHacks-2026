@@ -19,34 +19,88 @@ const resetButton = document.getElementById("reset-adjustments");
 const sliders = [brightness, contrast, exposure];
 const DEFAULT_VALUE = 0;
 
+// constants for IndexedDB
+const DB_NAME = "fisheye-db";
+const STORE = "videos";
+const KEY = "current-video";
 
 function defaultFor(slider) {
     return slider ===  DEFAULT_VALUE;
 }
 
-// listener for button to upload file
+// ---------IndexedDB functions for saving and loading video files---------
+
+// open the IndexedDB database and create the object store if it doesn't exist
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+        request.onupgradeneeded = () => request.result.createObjectStore(STORE);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// save the video file to IndexedDB
+async function saveVideo(file) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, "readwrite");
+        tx.objectStore(STORE).put(file, KEY);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+// load the video file from IndexedDB
+async function loadVideo() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, "readonly");
+        const request = tx.objectStore(STORE).get(KEY);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
 let currentURL = null;
-videoInput.addEventListener("change", function() {
 
-    const file = this.files[0]; // note: assumption is that there is only ever one video uploaded - may need to change this later
-
-    if (!file) {
-        return;
-    }
-
-    // free the previous video from memory
+function showVideo(file) {
+    // free the previous object URL so memory is not leaked
     if (currentURL) {
         URL.revokeObjectURL(currentURL);
     }
-
-    // change source of video player to be the uploaded video
     currentURL = URL.createObjectURL(file);
     videoPlayer.src = currentURL;
 
     // show the player and hide the "No video loaded" message
     videoPlayer.hidden = false;
     videoPlaceholder.hidden = true;
+}
+
+videoInput.addEventListener("change", async function () {
+    const file = this.files[0];
+    if (!file) return;
+
+    showVideo(file);
+
+    try {
+        await saveVideo(file);
+    } catch (err) {
+        console.error("Could not save video:", err);
+    }
 });
+
+// restore the saved video on page load
+(async function restore() {
+    try {
+        const file = await loadVideo();
+        if (file) {
+            showVideo(file);
+        }
+    } catch (err) {
+        console.error("Could not load saved video:", err);
+    }
+})();
 
 // apply the slider values as CSS filters on the video
 function applyFilters() {
