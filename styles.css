@@ -32,7 +32,9 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+#upload input[type="file"]:focus-visible {
+    outline: none;
+}
 
 /* ---------- Header ---------- */
 .site-header {
@@ -77,7 +79,15 @@ body {
     cursor: pointer;
     transition: background 0.15s ease, transform 0.15s ease;
 }
-#upload:hover .upload-btn { background: #f2bd68; }
+
+#upload:hover .upload-btn {
+    background: #f2bd68;
+}
+
+#upload input[type="file"]:active + .upload-btn {
+    background: #A66A0B;
+    transform: scale(0.96);
+}
 
 
 /* ---------- Layout ---------- */
