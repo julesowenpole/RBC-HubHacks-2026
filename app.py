@@ -1,5 +1,7 @@
 import cv2
-from flask import Flask, send_file
+from flask import Flask, render_template
+
+app = Flask(__name__)
 
 def processVideo(input_video, output_video):
     videoCap = cv2.VideoCapture(input_video)
@@ -59,5 +61,14 @@ def processVideo(input_video, output_video):
     print(f"Saved enhanced video to {output_video}")
 
 INPUT_PATH = "test-media/turkey_water.mp4"
-OUTPUT_PATH = "output_clahe.mp4"
-processVideo(INPUT_PATH, OUTPUT_PATH)
+OUTPUT_PATH = "static/output_clahe.mp4"
+#processVideo(INPUT_PATH, OUTPUT_PATH) - for testing purposes
+
+# homepage
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
