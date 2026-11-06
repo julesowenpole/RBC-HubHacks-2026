@@ -146,20 +146,21 @@ const overlay = document.getElementById("motion-overlay");
 const overlayCtx = overlay.getContext("2d");
 const motionToggle = document.getElementById("motion-toggle");
 
-const ANALYSIS_WIDTH = 240;   // frames are downscaled to this width for speed
-const DIFF_THRESHOLD = 18;    // 0-255, how much a pixel must change to count as motion
-const MIN_BLOB_AREA = 12;     // in analysis pixels; raise this to ignore specks/noise
-const BG_ALPHA = 0.05;        // how fast the background model adapts (0-1)
+const ANALYSIS_WIDTH = 240;
+const DIFF_THRESHOLD = 15;     // 0-255, how much a pixel must change to count as motion
+const MIN_BLOB_AREA = 12;      // in analysis pixels; raise to ignore specks
+const LAG_FRAMES = 3;          // compare against frames this far back; raise for slow fish
+const MAX_CHANGED_FRACTION = 0.4; // if more than 40% of the frame "moves", assume a flash/shake and ignore it
 
 const analysisCanvas = document.createElement("canvas");
 const analysisCtx = analysisCanvas.getContext("2d", { willReadFrequently: true });
 
-let background = null;        // running-average grayscale background
+let history = [];              // recent grayscale frames (replaces `background`)
 let lastBlobs = [];
 let motionRunning = false;
 
 function resetMotion() {
-    background = null;
+    history = [];
     lastBlobs = [];
     drawOverlay([]);
 }
@@ -225,6 +226,22 @@ function findBlobs(mask, w, h) {
     return blobs;
 }
 
+// cheap 3x3 box blur to suppress compression noise
+function blur(src, w, h) {
+    const out = new Float32Array(src.length);
+    for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+            const i = y * w + x;
+            out[i] = (
+                src[i - w - 1] + src[i - w] + src[i - w + 1] +
+                src[i - 1]     + src[i]     + src[i + 1] +
+                src[i + w - 1] + src[i + w] + src[i + w + 1]
+            ) / 9;
+        }
+    }
+    return out;
+}
+
 // grab the current frame, compare to the background, return motion blobs
 function detectMotion() {
     const vw = videoPlayer.videoWidth, vh = videoPlayer.videoHeight;
@@ -235,28 +252,40 @@ function detectMotion() {
     if (analysisCanvas.width !== w || analysisCanvas.height !== h) {
         analysisCanvas.width = w;
         analysisCanvas.height = h;
-        background = null;
+        history = [];
     }
 
-    // drawImage uses the raw frame, so your CSS brightness/contrast sliders don't affect detection
     analysisCtx.drawImage(videoPlayer, 0, 0, w, h);
     const { data } = analysisCtx.getImageData(0, 0, w, h);
 
-    const gray = new Float32Array(w * h);
+    let gray = new Float32Array(w * h);
     for (let i = 0, j = 0; i < data.length; i += 4, j++) {
         gray[j] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
     }
+    gray = blur(gray, w, h);
 
-    if (!background) {
-        background = gray;
-        return [];
-    }
+    // keep the last 2*LAG+1 frames: [oldest ... current]
+    history.push(gray);
+    const needed = 2 * LAG_FRAMES + 1;
+    if (history.length > needed) history.shift();
+    if (history.length < needed) return [];   // still warming up
+
+    const near = history[history.length - 1 - LAG_FRAMES];  // N frames ago
+    const far = history[0];                                   // 2N frames ago
 
     let mask = new Uint8Array(w * h);
+    let changed = 0;
     for (let j = 0; j < gray.length; j++) {
-        if (Math.abs(gray[j] - background[j]) > DIFF_THRESHOLD) mask[j] = 1;
-        background[j] += BG_ALPHA * (gray[j] - background[j]);
+        // must differ from BOTH older frames -> removes the trail left behind a moving fish
+        if (Math.abs(gray[j] - near[j]) > DIFF_THRESHOLD &&
+            Math.abs(gray[j] - far[j]) > DIFF_THRESHOLD) {
+            mask[j] = 1;
+            changed++;
+        }
     }
+
+    // whole frame changed (keyframe flash, camera bump, lighting) -> not fish
+    if (changed > MAX_CHANGED_FRACTION * w * h) return [];
 
     mask = dilate(mask, w, h);
     return findBlobs(mask, w, h);
