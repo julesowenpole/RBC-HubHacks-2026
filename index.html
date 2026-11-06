@@ -23,6 +23,7 @@
     <main class="workspace" id="workspace">
 
         <section class="editor" aria-label="Video editor">
+            <div class="player" id="player">
             <div class="video-frame">
                 <div class="video-placeholder" id="video-placeholder">
                     <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -32,7 +33,42 @@
                     <p class="title">No video loaded</p>
                     <p class="hint">Upload a video to start editing and counting fish.</p>
                 </div>
-                <video controls id="video-player" hidden></video>
+                <video id="video-player" hidden></video>
+            </div>
+
+            <div class="player-bar" id="player-bar" data-ready="false">
+                <div class="transport">
+                    <button type="button" class="icon-btn primary" id="play-toggle" data-playing="false" aria-label="Play">
+                        <svg class="icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
+                        <svg class="icon-pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg>
+                    </button>
+                    <button type="button" class="icon-btn" id="prev-motion" aria-label="Previous motion" title="Previous motion">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5v14"/><path d="M19 5l-9 7 9 7z"/></svg>
+                    </button>
+                    <button type="button" class="icon-btn" id="next-motion" aria-label="Next motion" title="Next motion">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 5v14"/><path d="M5 5l9 7-9 7z"/></svg>
+                    </button>
+                    <span class="time-display" id="time-display">0:00 / 0:00</span>
+
+                    <button type="button" class="icon-btn push-right" id="fullscreen-toggle" data-fullscreen="false" aria-label="Enter fullscreen" title="Fullscreen (F)">
+                        <svg class="icon-enter" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+                        <svg class="icon-exit" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg>
+                    </button>
+                </div>
+
+                <div class="timeline" id="timeline" role="slider" tabindex="0"
+                     aria-label="Video timeline" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+                    <div class="timeline-track" id="timeline-track">
+                        <div class="motion-layer" id="motion-layer"></div>
+                        <div class="timeline-progress" id="timeline-progress"></div>
+                        <div class="scan-veil" id="scan-veil"></div>
+                    </div>
+                    <div class="playhead" id="playhead"></div>
+                    <div class="hover-tip" id="hover-tip">0:00</div>
+                </div>
+
+                <p class="timeline-status" id="timeline-status">Upload a video to see its timeline.</p>
+            </div>
             </div>
 
             <div class="controls">
