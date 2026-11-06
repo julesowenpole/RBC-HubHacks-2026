@@ -15,7 +15,7 @@ height = int(videoCap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 fps = videoCap.get(cv2.CAP_PROP_FPS)
 
 # Create output video writer
-fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+fourcc = cv2.VideoWriter_fourcc(*'avc1')
 
 writer = cv2.VideoWriter(
     OUTPUT_VIDEO,
