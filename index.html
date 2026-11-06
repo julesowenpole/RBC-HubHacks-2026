@@ -33,12 +33,17 @@
                     <p class="hint">Upload a video to start editing and counting fish.</p>
                 </div>
                 <video controls id="video-player" hidden></video>
+                <video controls id="video-player" hidden></video>
+                <canvas id="motion-overlay"></canvas>
             </div>
 
             <div class="controls">
                 <div class="controls-head">
                     <h2 class="controls-title">Adjust</h2>
                     <button type="button" class="reset-btn" id="reset-adjustments">Reset</button>
+                    <label class="motion-toggle">
+                    <input type="checkbox" id="motion-toggle" checked> Highlight motion
+                    </label>
                 </div>
 
                 <div class="control-panel" id="panel-adjust">
