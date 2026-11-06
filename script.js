@@ -146,34 +146,65 @@ const overlay = document.getElementById("motion-overlay");
 const overlayCtx = overlay.getContext("2d");
 const motionToggle = document.getElementById("motion-toggle");
 
-const ANALYSIS_WIDTH = 240;
-const DIFF_THRESHOLD = 15;     // 0-255, how much a pixel must change to count as motion
-const MIN_BLOB_AREA = 12;      // in analysis pixels; raise to ignore specks
-const LAG_FRAMES = 3;          // compare against frames this far back; raise for slow fish
+const ANALYSIS_WIDTH = 320;
 const MAX_CHANGED_FRACTION = 0.4; // if more than 40% of the frame "moves", assume a flash/shake and ignore it
+
+const MIN_BLOB_AREA = 4;      // keep small fragments so they can be merged
+const DILATE_RADIUS = 2;        // joins fragments of one fish
+const RECENT_THRESHOLD = 10;     // change over the last 2 samples; trims the trail behind a fish
+const MAX_BLOB_AREA = 0.25;     // ignore boxes covering more than 25% of the video
+const MIN_GROUP_AREA = 100;    // after merging, drop anything smaller (specks/noise)
+
+// motion energy
+const SAMPLE_INTERVAL = 0.1;    // seconds of video between analysed frames
+const MOTION_STEPS = 6;         // frames of motion to accumulate (6 x 0.1s = 0.6s)
+const ENERGY_THRESHOLD = 24;    // how much accumulated change counts as motion
+
+// tracker
+const MATCH_DIST = 0.12;        // max centre jump (fraction of video) to be the same fish
+const MIN_HITS = 3;             // detections needed before a box is shown
+const MAX_MISSES = 6;           // missed samples before a box disappears (6 = 0.6s)
+const SMOOTHING = 0.2;          // 0-1, lower = smoother but laggier boxes
 
 const analysisCanvas = document.createElement("canvas");
 const analysisCtx = analysisCanvas.getContext("2d", { willReadFrequently: true });
 
-let history = [];              // recent grayscale frames (replaces `background`)
+let prevGray = null;
+let diffs = [];
+let accum = null;
+let lastSampleTime = -1;
+let tracks = [];
+let nextTrackId = 1;
+
 let lastBlobs = [];
 let motionRunning = false;
 
 function resetMotion() {
-    history = [];
+    prevGray = null;
+    diffs = [];
+    accum = null;
+    lastSampleTime = -1;
+    tracks = [];
     lastBlobs = [];
     drawOverlay([]);
 }
 
 // 3x3 dilation so fragments of one fish merge into a single blob
-function dilate(mask, w, h) {
+function dilate(mask, w, h, r = 1) {
+    const tmp = new Uint8Array(mask.length);
     const out = new Uint8Array(mask.length);
-    for (let y = 1; y < h - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-            const i = y * w + x;
-            if (mask[i] || mask[i - 1] || mask[i + 1] || mask[i - w] || mask[i + w]) {
-                out[i] = 1;
-            }
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            if (!mask[y * w + x]) continue;
+            const x1 = Math.min(w - 1, x + r);
+            for (let k = Math.max(0, x - r); k <= x1; k++) tmp[y * w + k] = 1;
+        }
+    }
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            if (!tmp[y * w + x]) continue;
+            const y1 = Math.min(h - 1, y + r);
+            for (let k = Math.max(0, y - r); k <= y1; k++) out[k * w + x] = 1;
         }
     }
     return out;
@@ -242,6 +273,11 @@ function blur(src, w, h) {
     return out;
 }
 
+function boxesNear(a, b, gap) {
+    return a.x - gap < b.x + b.w && b.x - gap < a.x + a.w &&
+           a.y - gap < b.y + b.h && b.y - gap < a.y + a.h;
+}
+
 // grab the current frame, compare to the background, return motion blobs
 function detectMotion() {
     const vw = videoPlayer.videoWidth, vh = videoPlayer.videoHeight;
@@ -252,7 +288,7 @@ function detectMotion() {
     if (analysisCanvas.width !== w || analysisCanvas.height !== h) {
         analysisCanvas.width = w;
         analysisCanvas.height = h;
-        history = [];
+        resetMotion();
     }
 
     analysisCtx.drawImage(videoPlayer, 0, 0, w, h);
@@ -264,31 +300,50 @@ function detectMotion() {
     }
     gray = blur(gray, w, h);
 
-    // keep the last 2*LAG+1 frames: [oldest ... current]
-    history.push(gray);
-    const needed = 2 * LAG_FRAMES + 1;
-    if (history.length > needed) history.shift();
-    if (history.length < needed) return [];   // still warming up
+    // remove whole-frame brightness shifts
+    let sum = 0;
+    for (let j = 0; j < gray.length; j++) sum += gray[j];
+    const mean = sum / gray.length;
+    for (let j = 0; j < gray.length; j++) gray[j] -= mean;
 
-    const near = history[history.length - 1 - LAG_FRAMES];  // N frames ago
-    const far = history[0];                                   // 2N frames ago
+    if (!prevGray) { prevGray = gray; return []; }
 
+    // running sum of the last MOTION_STEPS frame-to-frame differences
+    if (!accum) accum = new Float32Array(w * h);
+    const d = new Float32Array(w * h);
+    for (let j = 0; j < d.length; j++) {
+        d[j] = Math.abs(gray[j] - prevGray[j]);
+        accum[j] += d[j];
+    }
+    diffs.push(d);
+    if (diffs.length > MOTION_STEPS) {
+        const old = diffs.shift();
+        for (let j = 0; j < old.length; j++) accum[j] -= old[j];
+    }
+    prevGray = gray;
+    if (diffs.length < MOTION_STEPS) return [];   // warming up
+
+       // pixels must have moved over the last 0.6s AND be moving right now
+    const prevD = diffs[diffs.length - 2];
     let mask = new Uint8Array(w * h);
     let changed = 0;
-    for (let j = 0; j < gray.length; j++) {
-        // must differ from BOTH older frames -> removes the trail left behind a moving fish
-        if (Math.abs(gray[j] - near[j]) > DIFF_THRESHOLD &&
-            Math.abs(gray[j] - far[j]) > DIFF_THRESHOLD) {
+    for (let j = 0; j < accum.length; j++) {
+        if (accum[j] > ENERGY_THRESHOLD && (d[j] + prevD[j]) > RECENT_THRESHOLD) {
             mask[j] = 1;
             changed++;
         }
     }
 
-    // whole frame changed (keyframe flash, camera bump, lighting) -> not fish
-    if (changed > MAX_CHANGED_FRACTION * w * h) return [];
+    // whole frame changed (flash / camera bump): discard and start over
+    if (changed > MAX_CHANGED_FRACTION * w * h) {
+        diffs = [];
+        accum.fill(0);
+        return [];
+    }
 
-    mask = dilate(mask, w, h);
-    return findBlobs(mask, w, h);
+    mask = dilate(mask, w, h, DILATE_RADIUS);
+    return findBlobs(mask, w, h)
+        .filter(b => b.area >= MIN_GROUP_AREA && b.w * b.h < MAX_BLOB_AREA);
 }
 
 // draw boxes, accounting for object-fit: contain letterboxing
@@ -316,12 +371,18 @@ function motionLoop() {
     if (!motionRunning) return;
 
     if (motionToggle.checked && !videoPlayer.paused && !videoPlayer.ended) {
-        lastBlobs = detectMotion();
+        const t = videoPlayer.currentTime;
+        if (Math.abs(t - lastSampleTime) >= SAMPLE_INTERVAL) {
+            lastSampleTime = t;
+            updateTracks(detectMotion());   // heavy work, only ~10x per second
+        }
+        smoothTracks();                      // cheap, every frame
+        lastBlobs = visibleTracks();
         drawOverlay(lastBlobs);
     }
 
     if (videoPlayer.requestVideoFrameCallback) {
-        videoPlayer.requestVideoFrameCallback(motionLoop);   // once per real video frame
+        videoPlayer.requestVideoFrameCallback(motionLoop);
     } else {
         requestAnimationFrame(motionLoop);
     }
@@ -332,8 +393,6 @@ videoPlayer.addEventListener("play", function () {
     motionRunning = true;
     motionLoop();
 });
-videoPlayer.addEventListener("pause", function () { motionRunning = false; });
-videoPlayer.addEventListener("ended", function () { motionRunning = false; });
 
 // a seek or a new video makes the old background meaningless
 videoPlayer.addEventListener("seeked", resetMotion);
@@ -343,3 +402,51 @@ motionToggle.addEventListener("change", function () {
     if (!motionToggle.checked) drawOverlay([]);
 });
 window.addEventListener("resize", function () { drawOverlay(lastBlobs); });
+
+// match this sample's detections to existing tracks, create/expire tracks as needed
+function updateTracks(blobs) {
+    const unmatched = new Set(tracks);
+
+    blobs.sort((a, b) => b.area - a.area);
+    for (const b of blobs) {
+        const bcx = b.x + b.w / 2, bcy = b.y + b.h / 2;
+        let best = null, bestD = MATCH_DIST;
+        for (const t of unmatched) {
+            const d = Math.hypot(bcx - (t.tx + t.tw / 2), bcy - (t.ty + t.th / 2));
+            if (d < bestD) { best = t; bestD = d; }
+        }
+        if (best) {
+            unmatched.delete(best);
+            best.tx = b.x; best.ty = b.y; best.tw = b.w; best.th = b.h;
+            best.hits++;
+            best.misses = 0;
+        } else {
+            tracks.push({
+                id: nextTrackId++,
+                x: b.x, y: b.y, w: b.w, h: b.h,
+                tx: b.x, ty: b.y, tw: b.w, th: b.h,
+                cx: bcx, cy: bcy,
+                hits: 1, misses: 0
+            });
+        }
+    }
+
+    for (const t of unmatched) t.misses++;
+    tracks = tracks.filter(t => t.misses <= MAX_MISSES);
+}
+
+// runs every video frame: glide each box toward its target
+function smoothTracks() {
+    for (const t of tracks) {
+        t.x += (t.tx - t.x) * SMOOTHING;
+        t.y += (t.ty - t.y) * SMOOTHING;
+        t.w += (t.tw - t.w) * SMOOTHING;
+        t.h += (t.th - t.h) * SMOOTHING;
+        t.cx = t.x + t.w / 2;
+        t.cy = t.y + t.h / 2;
+    }
+}
+
+function visibleTracks() {
+    return tracks.filter(t => t.hits >= MIN_HITS);
+}
