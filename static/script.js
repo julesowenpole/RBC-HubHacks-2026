@@ -108,6 +108,11 @@ videoInput.addEventListener("change", async (event) => {
     videoPlayer.hidden = false;
     videoPlaceholder.hidden = true;
 
+    sliders.forEach(function(slider) {
+        slider.value = defaultFor(slider);
+    });
+    applyFilters();
+
     // this is for indexedDB purposes
     try {
         await saveVideo(file);
