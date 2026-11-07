@@ -83,7 +83,7 @@ videoInput.addEventListener("change", async (event) => {
     const file = event.target.files[0];
     const formData = new FormData();
     formData.append("video", file);
-    videoPlayer.poster = "../static/loading-bar.png";
+    videoPlayer.poster = "../static/images/loading-bar.png";
 
     const response = await fetch("/process-video", {
         method: "POST",
@@ -103,7 +103,6 @@ videoInput.addEventListener("change", async (event) => {
     // change source of the video and get the page ready to play it
     videoPlayer.src = data.video_url + "?t=" + Date.now();
     videoPlayer.hidden = false;
-    videoPlaceholder.hidden = true;
 
     sliders.forEach(function(slider) {
         slider.value = defaultFor(slider);
