@@ -88,6 +88,9 @@ videoInput.addEventListener("change", async (event) => {
     const file = event.target.files[0];
     const formData = new FormData();
     formData.append("video", file);
+    console.log(videoPlayer.poster);
+    console.log(videoPlayer);
+    videoPlayer.poster = "../static/loading-bar.png";
 
     const response = await fetch("/process-video", {
         method: "POST",
@@ -95,13 +98,14 @@ videoInput.addEventListener("change", async (event) => {
     });
 
     const data = await response.json();
+    // will only proceed beyond this point when the video has finished processing
 
     document.getElementById("fish-count").textContent = data.fish_count;
     document.getElementById("info-text").textContent = "Fish are boxed in the video.";
 
-    // will only proceed beyond this point when the video has finished processing
     bar.style.display = 'block';
     console.log(data.video_url);
+    videoPlayer.poster = ""
 
     // change source of the video and get the page ready to play it
     videoPlayer.src = data.video_url + "?t=" + Date.now();
