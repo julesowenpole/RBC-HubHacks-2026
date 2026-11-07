@@ -1,7 +1,6 @@
 // constants for video upload and play functionality
 const videoInput = document.getElementById("video-upload");
 const videoPlayer = document.getElementById("video-player");
-const videoPlaceholder = document.getElementById("video-placeholder");
 const uploadButton = document.getElementById("upload-btn");
 
 // constants for filters
@@ -72,10 +71,6 @@ function showVideo(file) {
     }
     currentURL = URL.createObjectURL(file);
     videoPlayer.src = currentURL;
-
-    // show the player and hide the "No video loaded" message
-    videoPlayer.hidden = false;
-    videoPlaceholder.hidden = true;
 }
 
 // event listeners for video upload

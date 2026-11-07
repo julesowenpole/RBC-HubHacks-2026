@@ -12,7 +12,6 @@ const timelineTrack = document.getElementById("timeline-track");
 const motionLayer = document.getElementById("motion-layer");
 const timelineProgress = document.getElementById("timeline-progress");
 const playhead = document.getElementById("playhead");
-const hoverTip = document.getElementById("hover-tip");
 const timelineStatus = document.getElementById("timeline-status");
 
 // Placeholder highlights so the bar can be tested before detection exists.
@@ -153,14 +152,6 @@ function timeFromPointer(e) {
     return (x / rect.width) * (videoPlayer.duration || 0);
 }
 
-function showTip(e) {
-    const rect = timeline.getBoundingClientRect();
-    const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
-    hoverTip.style.left = x + "px";
-    hoverTip.textContent = formatTime(timeFromPointer(e));
-    hoverTip.classList.add("show");
-}
-
 function seekBy(seconds) {
     const duration = videoPlayer.duration || 0;
     videoPlayer.currentTime = Math.min(Math.max(videoPlayer.currentTime + seconds, 0), duration);
@@ -174,7 +165,6 @@ timeline.addEventListener("pointerdown", function(e) {
 });
 
 timeline.addEventListener("pointermove", function(e) {
-    showTip(e);
     if (dragging) {
         videoPlayer.currentTime = timeFromPointer(e);
         updateTimeline();
@@ -183,7 +173,6 @@ timeline.addEventListener("pointermove", function(e) {
 
 timeline.addEventListener("pointerup", () => { dragging = false; });
 timeline.addEventListener("pointercancel", () => { dragging = false; });
-timeline.addEventListener("pointerleave", () => hoverTip.classList.remove("show"));
 
 timeline.addEventListener("keydown", function(e) {
     const big = e.shiftKey ? 5 : 1;
