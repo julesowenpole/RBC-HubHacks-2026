@@ -1,16 +1,30 @@
 import os
+import sys
 from collections import Counter
 
 import cv2
 from flask import Flask, render_template, request, jsonify
 from ultralytics import YOLO
 
-app = Flask(__name__)
+# function to get the correct path for yolo.pt (for the app version)
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+app = Flask(
+    __name__, 
+    template_folder=resource_path("templates"),
+    static_folder=resource_path("static")
+)
 OUTPUT_PATH = "static/output_clahe.mp4"
 
 # ---------- fish detection settings ----------
 # NOTE: stock COCO weights have no "fish" class - use fish-trained weights.
-MODEL_PATH = "yolo.pt"
+MODEL_PATH = resource_path("yolo.pt")
 CONF = 0.25          # lower = more detections, more false positives
 IOU = 0.5
 IMGSZ = 960          # larger helps with small/distant fish (slower)
