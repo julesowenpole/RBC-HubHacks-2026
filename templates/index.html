@@ -14,6 +14,7 @@ Date Created:  November 5, 2026
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo+Narrow:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../static/styles.css">
+    <link rel="icon" type="image/png" href="../static/images/favicon.png">
 </head>
 <body>
     <header class="site-header">
@@ -30,7 +31,7 @@ Date Created:  November 5, 2026
         <section class="editor" aria-label="Video editor">
             <div class="player" id="player">
                 <div class="video-frame">
-                    <video id="video-player" poster="{{ url_for('static', filename='upload-prompt.png') }}"></video>
+                    <video id="video-player" poster="{{ url_for('static', filename='images/upload-prompt.png') }}"></video>
                 </div>
 
                 <div class="player-bar" id="player-bar" data-ready="false">
