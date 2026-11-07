@@ -14,6 +14,10 @@ The program runs as a Flask app and requires the installation of Python 3.0 or h
 
 to start the app. You can then open the app in a browser using the indicated link. 
 
+To build the app yourself and run it locally as an executable, use the following command for Powershell: 
+
+```python -m PyInstaller --onedir --collect-all torchvision --collect-all ultralytics --add-data "yolo.pt;." --add-data "templates;templates" --add-data "static;static" launcher.py```
+
 ### End users
 
 We will provide instructions to download the app to your device as soon as the app version is available. 
