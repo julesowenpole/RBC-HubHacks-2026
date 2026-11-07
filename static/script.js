@@ -83,13 +83,11 @@ uploadButton.addEventListener("click", () => videoInput.click());
 
 // functionality for video processing endpoint
 videoInput.addEventListener("change", async (event) => {
-    bar = document.getElementById("player-bar");
+    let bar = document.getElementById("player-bar");
     bar.style.display = 'none';
     const file = event.target.files[0];
     const formData = new FormData();
     formData.append("video", file);
-    console.log(videoPlayer.poster);
-    console.log(videoPlayer);
     videoPlayer.poster = "../static/loading-bar.png";
 
     const response = await fetch("/process-video", {
@@ -104,7 +102,7 @@ videoInput.addEventListener("change", async (event) => {
     document.getElementById("info-text").textContent = "Fish are boxed in the video.";
 
     bar.style.display = 'block';
-    console.log(data.video_url);
+    console.log(data.video_url); // confirmation of specified video url
     videoPlayer.poster = ""
 
     // change source of the video and get the page ready to play it
