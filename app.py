@@ -5,13 +5,15 @@ import cv2
 from flask import Flask, render_template, request, jsonify
 from ultralytics import YOLO
 
+import detect_api
+
 app = Flask(__name__)
 OUTPUT_PATH = "static/output_clahe.mp4"
 
 # ---------- fish detection settings ----------
 # NOTE: stock COCO weights have no "fish" class - use fish-trained weights.
 MODEL_PATH = "yolo.pt"
-CONF = 0.25          # lower = more detections, more false positives
+CONF = 0.20          # lower = more detections, more false positives
 IOU = 0.5
 IMGSZ = 960          # larger helps with small/distant fish (slower)
 TRACKER = "bytetrack.yaml"
@@ -21,6 +23,8 @@ BOX_THICKNESS = 2
 
 model = YOLO(MODEL_PATH)
 
+detect_api.init(model, tracker=TRACKER, conf=CONF, iou=IOU, imgsz=IMGSZ)
+app.register_blueprint(detect_api.bp)
 
 def drawBox(frame, x1, y1, x2, y2, label):
     cv2.rectangle(frame, (x1, y1), (x2, y2), BOX_COLOUR, BOX_THICKNESS)

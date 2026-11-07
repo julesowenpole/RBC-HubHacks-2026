@@ -1,0 +1,121 @@
+/* review.css - styles for review.js. Uses the tokens already defined in styles.css. */
+
+/* ---------- box overlay on the video ---------- */
+.rv-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;      /* review.js switches this on while editing boxes */
+}
+
+/* ---------- sample markers on the timeline ---------- */
+.rv-ticks { position: absolute; inset: 0; pointer-events: none; }
+.rv-tick {
+    position: absolute;
+    top: 2px;
+    width: 2px;
+    height: 32px;
+    margin-left: -1px;
+    background: var(--blue);
+    border-radius: 1px;
+}
+.rv-tick.qc { background: var(--mist); }
+.rv-tick.done { background: #fff; }
+.rv-tick.current { background: var(--amber); width: 4px; margin-left: -2px; box-shadow: 0 0 0 2px var(--navy); }
+
+/* ---------- shared form bits ---------- */
+.rv-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+    margin-top: 6px;
+}
+.rv-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: var(--font-label);
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+.rv-field.wide, .rv-check.wide { grid-column: 1 / -1; }
+
+.rv-field input[type="text"],
+.rv-field input[type="number"],
+.rv-field select,
+.rv-field textarea,
+.rv-actions select {
+    width: 100%;
+    padding: 7px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    color: #fff;
+    font: inherit;
+    font-family: var(--font-ui);
+    font-size: 0.9rem;
+}
+.rv-actions select { width: auto; }
+.rv-field textarea { resize: vertical; }
+.rv-field select option, .rv-actions select option { background: var(--navy); color: #fff; }
+.rv-field input:focus-visible, .rv-field select:focus-visible, .rv-field textarea:focus-visible,
+.rv-actions select:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
+
+.rv-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-label);
+    font-size: 1rem;
+    color: #fff;
+}
+.rv-check input { accent-color: var(--amber); width: 16px; height: 16px; }
+
+/* ---------- analysis card ---------- */
+.rv-bar {
+    height: 6px;
+    margin-top: 14px;
+    background: rgba(209, 215, 220, 0.16);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.rv-bar > div { height: 100%; width: 0; background: var(--amber); transition: width 0.3s ease; }
+#analysis-card .upload-btn:disabled { opacity: 0.5; cursor: progress; }
+
+/* ---------- review panel (right-hand column) ---------- */
+.rv-panel { display: flex; flex-direction: column; gap: 16px; }
+
+.rv-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rv-nav-title { font-family: var(--font-label); font-size: 1.15rem; text-align: center; }
+.rv-nav-title small { display: block; color: var(--text-muted); font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.rv-nav .icon-btn { font-size: 1.2rem; line-height: 1; }
+
+.rv-count { display: flex; align-items: baseline; gap: 10px; }
+.rv-big { font-family: var(--font-display); font-size: 2.6rem; line-height: 1; color: var(--amber); }
+
+.rv-actions { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+.reset-btn.on { background: var(--amber); border-color: var(--amber); color: var(--navy); }
+.reset-btn:focus-visible, .upload-btn:focus-visible, .icon-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.rv-selected {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--amber);
+    border-radius: 10px;
+}
+
+.rv-checks { margin: 0; padding: 10px 12px; border: 1px solid var(--surface-border); border-radius: 10px; display: grid; gap: 6px; }
+.rv-checks legend { padding: 0 6px; font-family: var(--font-label); color: var(--text-muted); font-size: 0.95rem; }
+
+.rv-thumb { width: 100%; border-radius: 8px; border: 1px solid var(--surface-border); }
+
+.rv-section { padding-top: 16px; border-top: 1px solid var(--surface-border); }
+.rv-section h3 { margin: 0 0 10px; font-family: var(--font-label); font-size: 1.1rem; font-weight: 500; }
+
+.rv-qc { border-top: 1px solid var(--surface-border); padding-top: 12px; }
+.rv-qc summary { cursor: pointer; font-family: var(--font-label); font-size: 1.1rem; margin-bottom: 10px; }
+.rv-qc > * + * { margin-top: 10px; }
