@@ -1,3 +1,9 @@
+<!--
+Fish Eye - video analysis and fish enumeration
+HTML template for the page of content. Displays video player and controls as well as the fish count bar. 
+Authors: @emmasnow404, @julesowenpole, @kbussey829, @sarahmay33
+Date Created:  November 5, 2026
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,13 +12,12 @@
     <title>Fish Eye | Video editor</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo+Narrow:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../static/styles.css">
 </head>
 <body>
     <header class="site-header">
-        <a class="logo" href="index.html" aria-label="Fish Eye home">Fish Eye<span class="logo-dot">.</span></a>
+        <a class="logo" aria-label="Fish Eye home">Fish Eye<span class="logo-dot">.</span></a>
 
         <div id="upload">
             <input type="file" id="video-upload" accept="video/*" hidden>
@@ -24,43 +29,42 @@
 
         <section class="editor" aria-label="Video editor">
             <div class="player" id="player">
-            <div class="video-frame">
-                <video id="video-player" poster="{{ url_for('static', filename='upload-prompt.png') }}"></video>
-            </div>
-
-            <div class="player-bar" id="player-bar" data-ready="false">
-                <div class="transport">
-                    <button type="button" class="icon-btn primary" id="play-toggle" data-playing="false" aria-label="Play">
-                        <svg class="icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
-                        <svg class="icon-pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg>
-                    </button>
-                    <button type="button" class="icon-btn" id="prev-motion" aria-label="Previous motion" title="Previous motion">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5v14"/><path d="M19 5l-9 7 9 7z"/></svg>
-                    </button>
-                    <button type="button" class="icon-btn" id="next-motion" aria-label="Next motion" title="Next motion">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 5v14"/><path d="M5 5l9 7-9 7z"/></svg>
-                    </button>
-                    <span class="time-display" id="time-display">0:00 / 0:00</span>
-
-                    <button type="button" class="icon-btn push-right" id="fullscreen-toggle" data-fullscreen="false" aria-label="Enter fullscreen" title="Fullscreen (F)">
-                        <svg class="icon-enter" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
-                        <svg class="icon-exit" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg>
-                    </button>
+                <div class="video-frame">
+                    <video id="video-player" poster="{{ url_for('static', filename='upload-prompt.png') }}"></video>
                 </div>
 
-                <div class="timeline" id="timeline" role="slider" tabindex="0"
-                     aria-label="Video timeline" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
-                    <div class="timeline-track" id="timeline-track">
-                        <div class="motion-layer" id="motion-layer"></div>
-                        <div class="timeline-progress" id="timeline-progress"></div>
-                        <div class="scan-veil" id="scan-veil"></div>
+                <div class="player-bar" id="player-bar" data-ready="false">
+                    <div class="transport">
+                        <button type="button" class="icon-btn primary" id="play-toggle" data-playing="false" aria-label="Play">
+                            <svg class="icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
+                            <svg class="icon-pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg>
+                        </button>
+                        <button type="button" class="icon-btn" id="prev-motion" aria-label="Previous motion" title="Previous motion">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5v14"/><path d="M19 5l-9 7 9 7z"/></svg>
+                        </button>
+                        <button type="button" class="icon-btn" id="next-motion" aria-label="Next motion" title="Next motion">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 5v14"/><path d="M5 5l9 7-9 7z"/></svg>
+                        </button>
+                        <span class="time-display" id="time-display">0:00 / 0:00</span>
+
+                        <button type="button" class="icon-btn push-right" id="fullscreen-toggle" data-fullscreen="false" aria-label="Enter fullscreen" title="Fullscreen (F)">
+                            <svg class="icon-enter" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+                            <svg class="icon-exit" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg>
+                        </button>
                     </div>
-                    <div class="playhead" id="playhead"></div>
-                    <div class="hover-tip" id="hover-tip">0:00</div>
-                </div>
 
-                <p class="timeline-status" id="timeline-status">Upload a video to see its timeline.</p>
-            </div>
+                    <div class="timeline" id="timeline" role="slider" tabindex="0"
+                        aria-label="Video timeline" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+                        <div class="timeline-track" id="timeline-track">
+                            <div class="motion-layer" id="motion-layer"></div>
+                            <div class="timeline-progress" id="timeline-progress"></div>
+                            <div class="scan-veil" id="scan-veil"></div>
+                        </div>
+                        <div class="playhead" id="playhead"></div>
+                    </div>
+
+                    <p class="timeline-status" id="timeline-status">Upload a video to see its timeline.</p>
+                </div>
             </div>
 
             <div class="controls">
@@ -90,10 +94,9 @@
         </section>
 
         <aside class="info-panel" aria-label="Detection results">
-            <h2>Number of fish</h2>
+            <h2>Number of fish detected in current video</h2>
             <div class="stat">
                 <span class="stat-value" id="fish-count">&mdash;</span>
-                <span class="stat-label">detected in current video</span>
             </div>
             <p class="info-note" id="info-text">Counts will appear here once a video is analysed.</p>
         </aside>

@@ -1,4 +1,5 @@
 # source: Microsoft Copilot
+# see readme file for the proper command
 import threading
 import webview
 
