@@ -83,6 +83,8 @@ uploadButton.addEventListener("click", () => videoInput.click());
 
 // functionality for video processing endpoint
 videoInput.addEventListener("change", async (event) => {
+    bar = document.getElementById("player-bar");
+    bar.style.display = 'none';
     const file = event.target.files[0];
     const formData = new FormData();
     formData.append("video", file);
@@ -95,6 +97,7 @@ videoInput.addEventListener("change", async (event) => {
     const data = await response.json();
 
     // will only proceed beyond this point when the video has finished processing
+    bar.style.display = 'block';
     console.log(data.video_url);
 
     // change source of the video and get the page ready to play it
