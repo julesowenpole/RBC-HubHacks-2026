@@ -25,15 +25,7 @@
         <section class="editor" aria-label="Video editor">
             <div class="player" id="player">
             <div class="video-frame">
-                <div class="video-placeholder" id="video-placeholder">
-                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <rect x="3" y="5" width="13" height="14" rx="2"/>
-                        <path d="M16 10l5-3v10l-5-3z"/>
-                    </svg>
-                    <p class="title">No video loaded</p>
-                    <p class="hint">Upload a video to start editing and counting fish.</p>
-                </div>
-                <video id="video-player" hidden poster="../static/upload-prompt.png"></video>
+                <video id="video-player" poster="{{ url_for('static', filename='upload-prompt.png') }}"></video>
             </div>
 
             <div class="player-bar" id="player-bar" data-ready="false">
