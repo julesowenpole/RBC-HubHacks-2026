@@ -1,8 +1,7 @@
 import cv2
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template
 
 app = Flask(__name__)
-OUTPUT_PATH = "static/output_clahe.mp4"
 
 def processVideo(input_video, output_video):
     videoCap = cv2.VideoCapture(input_video)
@@ -47,6 +46,7 @@ def processVideo(input_video, output_video):
         result = cv2.cvtColor(hsv_clahe, cv2.COLOR_HSV2BGR)
 
         # display video and add frame to result - don't need to display video in the final version
+        cv2.imshow("CLAHE Video", result)
         writer.write(result)
 
         # quit shortcut for testing purposes
@@ -56,26 +56,19 @@ def processVideo(input_video, output_video):
     # cleanup
     videoCap.release()
     writer.release()
+    cv2.destroyAllWindows()
 
     print(f"Saved enhanced video to {output_video}")
 
-# homepage (visible to the user)
+INPUT_PATH = "test-media/turkey_water.mp4"
+OUTPUT_PATH = "static/output_clahe.mp4"
+#processVideo(INPUT_PATH, OUTPUT_PATH) - for testing purposes
+
+# homepage
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# this is the endpoint that handles video send and receive (not visible to the user)
-@app.route("/process-video", methods=["POST"])
-def process():
-    file = request.files["video"]
-    input_path = "uploads/input.mp4"
-    file.save(input_path)
-
-    processVideo(input_path, OUTPUT_PATH)
-
-    return jsonify({
-        "video_url": OUTPUT_PATH
-    })
 
 if __name__ == "__main__":
     app.run(debug=True)
