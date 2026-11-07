@@ -2,7 +2,7 @@
 const videoInput = document.getElementById("video-upload");
 const videoPlayer = document.getElementById("video-player");
 const videoPlaceholder = document.getElementById("video-placeholder");
-//const uploadButton = document.getElementById("upload-btn");
+const uploadButton = document.getElementById("upload-btn");
 
 // constants for filters
 const brightness = document.getElementById("brightness");
@@ -79,7 +79,7 @@ function showVideo(file) {
 }
 
 // event listeners for video upload
-//uploadButton.addEventListener("click", () => videoInput.click());
+uploadButton.addEventListener("click", () => videoInput.click());
 
 // functionality for video processing endpoint
 videoInput.addEventListener("change", async (event) => {
@@ -95,6 +95,9 @@ videoInput.addEventListener("change", async (event) => {
     });
 
     const data = await response.json();
+
+    document.getElementById("fish-count").textContent = data.fish_count;
+    document.getElementById("info-text").textContent = "Fish are boxed in the video.";
 
     // will only proceed beyond this point when the video has finished processing
     bar.style.display = 'block';

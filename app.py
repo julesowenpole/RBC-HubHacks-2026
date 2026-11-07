@@ -10,7 +10,7 @@ OUTPUT_PATH = "static/output_clahe.mp4"
 
 # ---------- fish detection settings ----------
 # NOTE: stock COCO weights have no "fish" class - use fish-trained weights.
-MODEL_PATH = "yolov8n.pt"
+MODEL_PATH = "yolo.pt"
 CONF = 0.25          # lower = more detections, more false positives
 IOU = 0.5
 IMGSZ = 960          # larger helps with small/distant fish (slower)
