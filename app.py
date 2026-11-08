@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 from collections import Counter
 import cv2
 from flask import Flask, render_template, request, jsonify, send_file
@@ -8,9 +7,6 @@ import pandas as pd
 
 app = Flask(__name__)
 OUTPUT_PATH = "static/output_clahe.mp4"
-
-# spreadsheets from "Export to Excel" are saved here, next to app.py
-EXPORT_DIR = os.path.join(app.root_path, "exports")
 
 # ---------- fish detection settings ----------
 # NOTE: stock COCO weights have no "fish" class - use fish-trained weights.
@@ -175,12 +171,8 @@ def process():
 # endpoint handling exporting of fish data as excel spreadsheet (not visible to the user)
 @app.route("/export-fish", methods=["POST"])
 def exportFish():
-    fish_data = request.get_json(silent=True)
+    fish_data = request.json
 
-    if not fish_data:
-        return jsonify({"error": "No fish data received"}), 400
-
-    # sheet 1: one row per sighting, with the time in the video
     observe_rows = []
     for fish_name, fish_info in fish_data.items():
         for timestamp in fish_info["timestamps"]:
@@ -189,10 +181,9 @@ def exportFish():
                 "Timestamp (seconds)": timestamp
             })
 
-    # explicit columns so the sheet still has headers if every sighting was removed
-    observe_df = pd.DataFrame(observe_rows, columns=["Fish", "Timestamp (seconds)"])
+    observe_df = pd.DataFrame(observe_rows)
 
-    # sheet 2: one row per fish with its count
+    # sheet for 
     summary_rows = []
     for fish_name, fish_info in fish_data.items():
         summary_rows.append({
@@ -200,17 +191,11 @@ def exportFish():
             "Count": fish_info["count"]
         })
 
-    summary_df = pd.DataFrame(summary_rows, columns=["Fish", "Count"])
+    summary_df = pd.DataFrame(summary_rows)
 
-    # save both sheets into one spreadsheet on disk.
-    # the path is built from this file's folder (not the folder Flask was started from),
-    # so to_excel() and send_file() always use the same location.
-    # the time in the file name means each export is kept and a copy that is open in Excel can't block the next one
-    os.makedirs(EXPORT_DIR, exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    excel_path = os.path.join(EXPORT_DIR, f"fish_data_{stamp}.xlsx")
-
-    with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+    # join both sheets into the same spreadsheet
+    EXCEL_PATH = "fish_data.xlsx"
+    with pd.ExcelWriter(EXCEL_PATH, engine="openpyxl") as writer:
         observe_df.to_excel(
             writer,
             sheet_name="Fish observed",
@@ -223,11 +208,11 @@ def exportFish():
             index=False
         )
 
-    print(f"Saved fish data to {excel_path}")
+    return send_file(EXCEL_PATH, as_attachment=True, download_name=EXCEL_PATH)
 
-    # the browser still downloads it as fish_data.xlsx
-    return send_file(excel_path, as_attachment=True, download_name="fish_data.xlsx")
-
+@app.route("/download-video")
+def exportVideo():
+    return send_file(OUTPUT_PATH, as_attachment=True, download_name="processed_video.mp4")
 
 if __name__ == "__main__":
     app.run(debug=True)
