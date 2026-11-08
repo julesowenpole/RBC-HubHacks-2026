@@ -19,7 +19,7 @@ EXPORT_DIR = os.path.join(app.root_path, "exports")   # spreadsheets and adjuste
 MODEL_PATH = "yolo.pt"
 CONF = 0.25          # lower = more detections, more false positives
 IOU = 0.5
-IMGSZ =           # larger helps with small/distant fish (slower)
+IMGSZ = 512          # larger helps with small/distant fish (slower)
 TRACKER = "bytetrack.yaml"
 MIN_HITS = 5         # frames a track must exist before it is drawn/counted
 BOX_COLOUR = (75, 175, 236)   # BGR of --amber (#ECAF4B)
