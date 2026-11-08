@@ -1,10 +1,25 @@
+"""
+Fish Eye - video analysis and fish enumeration
+Python script to process a video using YOLO and CLAHE, and create a flask server. 
+Authors: @emmasnow404, @julesowenpole, @kbussey829
+Date Created:  November 6, 2026
+"""
+
 import os
+import sys
 from datetime import datetime
 from collections import Counter
 import cv2
 from flask import Flask, render_template, request, jsonify, send_file
 from ultralytics import YOLO
 import pandas as pd
+
+# converting between absolute and relative paths
+def resource_path(relative_path):
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+
+    return os.path.join(os.path.abspath("."), relative_path)
 
 app = Flask(__name__)
 OUTPUT_PATH = "static/output_clahe.mp4"      # url the browser uses to play the processed video
@@ -16,11 +31,11 @@ EXPORT_DIR = os.path.join(app.root_path, "exports")   # spreadsheets and adjuste
 
 # ---------- fish detection settings ----------
 # NOTE: stock COCO weights have no "fish" class - use fish-trained weights.
-MODEL_PATH = "yolo.pt"
+MODEL_PATH = resource_path("yolo.pt")
 CONF = 0.25          # lower = more detections, more false positives
 IOU = 0.5
 IMGSZ = 960          # larger helps with small/distant fish (slower)
-TRACKER = "bytetrack.yaml"
+TRACKER = resource_path("bytetrack.yaml")
 MIN_HITS = 5         # frames a track must exist before it is drawn/counted
 BOX_COLOUR = (75, 175, 236)   # BGR of --amber (#ECAF4B)
 BOX_THICKNESS = 2
