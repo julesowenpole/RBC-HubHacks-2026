@@ -210,5 +210,9 @@ def exportFish():
 
     return send_file(EXCEL_PATH, as_attachment=True, download_name=EXCEL_PATH)
 
+@app.route("/download-video")
+def exportVideo():
+    return send_file(OUTPUT_PATH, as_attachment=True, download_name="processed_video.mp4")
+
 if __name__ == "__main__":
     app.run(debug=True)

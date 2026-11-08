@@ -6,8 +6,8 @@ const exportFishBtn = document.getElementById("export-fish-btn");
 const fishData = {};
 
 addFishBtn.addEventListener("click", addFish);
-
 exportFishBtn.addEventListener("click", exportFishData);
+exportVidBtn.addEventListener("click", exportVideo);
 
 // adds a fish to the list of fish that can be exported. If the fish has already been added, nothing happens. 
 function addFish() {
@@ -122,4 +122,8 @@ async function exportFishData() {
 
     a.remove();
     window.URL.revokeObjectURL(url);
+}
+
+function exportVideo() {
+    window.location.href = "/download-video";
 }

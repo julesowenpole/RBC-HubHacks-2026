@@ -25,6 +25,9 @@ const DB_NAME = "fisheye-db";
 const STORE = "videos";
 const KEY = "current-video";
 
+// constant for video download button
+const exportVidBtn = document.getElementById("download-video-btn");
+
 function defaultFor(slider) {
     return DEFAULT_VALUE;
 }
@@ -125,6 +128,7 @@ videoInput.addEventListener("change", async (event) => {
     rememberSegments(data.segments);
 
     bar.style.display = 'block';
+    exportVidBtn.disabled = false;
     console.log(data.video_url); // confirmation of specified video url
     videoPlayer.poster = ""
 
