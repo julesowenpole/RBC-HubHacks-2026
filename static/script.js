@@ -202,4 +202,42 @@ resetButton.addEventListener("click", function() {
     applyFilters();
 });
 
+// listener for the save video button: asks Flask for the processed video with the current slider values applied
+exportVidBtn.addEventListener("click", async function() {
+    const label = exportVidBtn.textContent;
+    exportVidBtn.disabled = true;
+    exportVidBtn.textContent = "Preparing video...";   // the server re-renders the video, which can take a moment
+
+    try {
+        const params = new URLSearchParams({
+            brightness: brightness.value,
+            contrast: contrast.value,
+            exposure: exposure.value
+        });
+
+        const response = await fetch("/download-video?" + params);
+
+        if (!response.ok) {
+            throw new Error(`server returned ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "processed_video.mp4";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error("Could not download video:", err);
+        alert("Could not download the video (" + err.message + ").");
+    } finally {
+        exportVidBtn.disabled = false;
+        exportVidBtn.textContent = label;
+    }
+});
+
 applyFilters();

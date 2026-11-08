@@ -91,6 +91,48 @@ body {
     transform: scale(0.96);
 }
 
+/* ---------- Header buttons (Upload video + Save video) ---------- */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* same shape as the upload button, in blue */
+.save-btn {
+    display: inline-block;
+    padding: 10px 22px;
+    background: var(--blue);
+    border: none;
+    border-radius: 999px;
+    color: #fff;
+    font-family: var(--font-ui);
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+}
+
+.save-btn:hover:not(:disabled) {
+    background: #6a9df0;
+}
+
+.save-btn:active:not(:disabled) {
+    background: #2f66c4;
+    transform: scale(0.96);
+}
+
+/* greyed out until a video has been processed */
+.save-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.save-btn:focus-visible {
+    outline: 2px solid var(--mist);
+    outline-offset: 3px;
+}
+
 /* ---------- Layout ---------- */
 .workspace {
     display: grid;
@@ -648,6 +690,7 @@ input[type="range"]:focus-visible { outline-offset: 0; border-radius: 4px; }
 }
 
 @media (max-width: 560px) {
+    .site-header { flex-wrap: wrap; gap: 14px; }
     .identification-panel { padding: 18px; }
     .add-fish { flex-direction: column; }
     .player-bar { padding: 14px 16px 12px; }
