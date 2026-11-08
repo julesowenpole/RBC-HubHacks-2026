@@ -157,7 +157,6 @@ function showTip(e) {
     const rect = timeline.getBoundingClientRect();
     const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
     hoverTip.style.left = x + "px";
-    hoverTip.textContent = formatTime(timeFromPointer(e));
     hoverTip.classList.add("show");
 }
 
