@@ -195,7 +195,7 @@ async function exportFishData() {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "fish_sightings.xlsx";
+    a.download = "fish_data.xlsx";
 
     document.body.appendChild(a);
     a.click();
