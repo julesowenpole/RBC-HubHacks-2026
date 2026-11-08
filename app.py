@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from collections import Counter
 import cv2
 from flask import Flask, render_template, request, jsonify, send_file
@@ -6,14 +7,19 @@ from ultralytics import YOLO
 import pandas as pd
 
 app = Flask(__name__)
-OUTPUT_PATH = "static/output_clahe.mp4"
+OUTPUT_PATH = "static/output_clahe.mp4"      # url the browser uses to play the processed video
+
+# full paths built from this file's folder, so saving and sending always use the same place
+# no matter which folder Flask was started from
+OUTPUT_FILE = os.path.join(app.root_path, "static", "output_clahe.mp4")
+EXPORT_DIR = os.path.join(app.root_path, "exports")   # spreadsheets and adjusted videos are saved here
 
 # ---------- fish detection settings ----------
 # NOTE: stock COCO weights have no "fish" class - use fish-trained weights.
 MODEL_PATH = "yolo.pt"
 CONF = 0.25          # lower = more detections, more false positives
 IOU = 0.5
-IMGSZ =           # larger helps with small/distant fish (slower)
+IMGSZ = 960          # larger helps with small/distant fish (slower)
 TRACKER = "bytetrack.yaml"
 MIN_HITS = 5         # frames a track must exist before it is drawn/counted
 BOX_COLOUR = (75, 175, 236)   # BGR of --amber (#ECAF4B)
@@ -25,6 +31,15 @@ SEG_MIN = 0.4        # drop segments shorter than this (flicker)
 SEG_PAD = 0.25       # extra time before/after so the jump lands just before the fish
 
 model = YOLO(MODEL_PATH)
+
+
+def drawBox(frame, x1, y1, x2, y2, label):
+    cv2.rectangle(frame, (x1, y1), (x2, y2), BOX_COLOUR, BOX_THICKNESS)
+    (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+    cv2.rectangle(frame, (x1, y1 - th - 8), (x1 + tw + 6, y1), BOX_COLOUR, -1)
+    cv2.putText(frame, label, (x1 + 3, y1 - 5),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (26, 54, 68), 1, cv2.LINE_AA)
+
 
 def buildSegments(fish_frames, fps, total_frames):
     """Turn the frame numbers that had a fish into [{start, end}] in seconds."""
@@ -86,11 +101,6 @@ def processVideo(input_video, output_video):
     fish_frames = []  # frame numbers with at least one confirmed fish
     frame_idx = 0
 
-
-    detections_by_frame = []   # one entry per frame
-
-
-
     while True:
 
         ret, frame = videoCap.read()
@@ -116,22 +126,16 @@ def processVideo(input_video, output_video):
 
         boxes = detections.boxes
         fish_here = False
-        frame_boxes = []
         if boxes is not None and boxes.id is not None:
             xyxy = boxes.xyxy.cpu().numpy().astype(int)
             ids = boxes.id.cpu().numpy().astype(int)
             for (x1, y1, x2, y2), tid in zip(xyxy, ids):
                 hits[tid] += 1
-                if hits[tid] >= MIN_HITS:
-                    frame_boxes.append({
-                        "id": int(tid),
-                        "x1": int(x1), "y1": int(y1),
-                        "x2": int(x2), "y2": int(y2),
-                    })
+                if hits[tid] >= MIN_HITS:  # hides one-frame flickers
+                    drawBox(result, x1, y1, x2, y2, f"fish {tid}")
                     fish_here = True
         if fish_here:
             fish_frames.append(frame_idx)
-        detections_by_frame.append(frame_boxes)
 
         # add the tagged frame to the output video
         writer.write(result)
@@ -145,7 +149,7 @@ def processVideo(input_video, output_video):
     segments = buildSegments(fish_frames, fps, frame_idx)
     print(f"Saved enhanced video to {output_video} "
           f"({fish_count} fish, {len(segments)} segments)")
-    return fish_count, segments, detections_by_frame, fps, width, height
+    return fish_count, segments
 
 
 # homepage (visible to the user)
@@ -162,23 +166,24 @@ def process():
     input_path = "uploads/input.mp4"
     file.save(input_path)
 
-    fish_count, segments = processVideo(input_path, OUTPUT_PATH)
+    os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
+    fish_count, segments = processVideo(input_path, OUTPUT_FILE)
 
     return jsonify({
         "video_url": OUTPUT_PATH,
         "fish_count": fish_count,
-        "segments": segments,
-        "detections": dets,
-        "fps": fps,
-        "width": w,
-        "height": h,
+        "segments": segments      # [{start, end}] seconds with fish on screen
     })
 
 # endpoint handling exporting of fish data as excel spreadsheet (not visible to the user)
 @app.route("/export-fish", methods=["POST"])
 def exportFish():
-    fish_data = request.json
+    fish_data = request.get_json(silent=True)
 
+    if not fish_data:
+        return jsonify({"error": "No fish data received"}), 400
+
+    # sheet 1: one row per sighting, with the time in the video
     observe_rows = []
     for fish_name, fish_info in fish_data.items():
         for timestamp in fish_info["timestamps"]:
@@ -187,9 +192,10 @@ def exportFish():
                 "Timestamp (seconds)": timestamp
             })
 
-    observe_df = pd.DataFrame(observe_rows)
+    # explicit columns so the sheet still has headers if every sighting was removed
+    observe_df = pd.DataFrame(observe_rows, columns=["Fish", "Timestamp (seconds)"])
 
-    # sheet for 
+    # sheet 2: one row per fish with its count
     summary_rows = []
     for fish_name, fish_info in fish_data.items():
         summary_rows.append({
@@ -197,28 +203,81 @@ def exportFish():
             "Count": fish_info["count"]
         })
 
-    summary_df = pd.DataFrame(summary_rows)
+    summary_df = pd.DataFrame(summary_rows, columns=["Fish", "Count"])
 
-    # join both sheets into the same spreadsheet
-    EXCEL_PATH = "fish_data.xlsx"
-    with pd.ExcelWriter(EXCEL_PATH, engine="openpyxl") as writer:
-        observe_df.to_excel(
-            writer,
-            sheet_name="Fish observed",
-            index=False
-        )
+    # save both sheets into one spreadsheet on disk. the time in the file name keeps every export
+    # and stops a copy that is open in Excel from blocking the next one
+    os.makedirs(EXPORT_DIR, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    excel_path = os.path.join(EXPORT_DIR, f"fish_data_{stamp}.xlsx")
 
-        summary_df.to_excel(
-            writer,
-            sheet_name="Count of fish",
-            index=False
-        )
+    with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+        observe_df.to_excel(writer, sheet_name="Fish observed", index=False)
+        summary_df.to_excel(writer, sheet_name="Count of fish", index=False)
 
-    return send_file(EXCEL_PATH, as_attachment=True, download_name=EXCEL_PATH)
+    print(f"Saved fish data to {excel_path}")
 
+    # the browser still downloads it as fish_data.xlsx
+    return send_file(excel_path, as_attachment=True, download_name="fish_data.xlsx")
+
+
+def adjustVideo(source, destination, brightness, contrast, exposure):
+    """Copy a video and apply the Brightness / Contrast / Exposure slider values to every frame.
+
+    Uses the same maths as the CSS filters in script.js (applyFilters), so the saved
+    video looks like what the user sees in the player.
+    """
+    cap = cv2.VideoCapture(source)
+    if not cap.isOpened():
+        raise FileNotFoundError(f"Could not open {source}")
+
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+
+    # brightness() multiplies every pixel, contrast() stretches pixels around mid-grey
+    b = (1 + brightness / 100) * (2 ** (exposure / 100))
+    c = 1 + contrast / 100
+    alpha = b * c
+    beta = 127.5 * (1 - c)
+
+    # H.264 plays in browsers; if this OpenCV build can't write it, fall back to mp4v
+    # (still a normal .mp4 that desktop players open)
+    writer = cv2.VideoWriter(destination, cv2.VideoWriter_fourcc(*'avc1'), fps, (width, height))
+    if not writer.isOpened():
+        writer = cv2.VideoWriter(destination, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        writer.write(cv2.convertScaleAbs(frame, alpha=alpha, beta=beta))
+
+    cap.release()
+    writer.release()
+
+
+# endpoint for the Save Video button: sends the processed video with the slider changes applied
 @app.route("/download-video")
 def exportVideo():
-    return send_file(OUTPUT_PATH, as_attachment=True, download_name="processed_video.mp4")
+    if not os.path.exists(OUTPUT_FILE):
+        return jsonify({"error": "No processed video yet - upload a video first"}), 404
+
+    # slider values from the page, -100 to 100 (0 = no change)
+    brightness = max(-100, min(100, request.args.get("brightness", 0, type=float)))
+    contrast = max(-100, min(100, request.args.get("contrast", 0, type=float)))
+    exposure = max(-100, min(100, request.args.get("exposure", 0, type=float)))
+
+    # sliders untouched: send the processed video as it is
+    if brightness == 0 and contrast == 0 and exposure == 0:
+        return send_file(OUTPUT_FILE, as_attachment=True, download_name="processed_video.mp4")
+
+    os.makedirs(EXPORT_DIR, exist_ok=True)
+    adjusted_path = os.path.join(EXPORT_DIR, "adjusted_video.mp4")
+    adjustVideo(OUTPUT_FILE, adjusted_path, brightness, contrast, exposure)
+
+    return send_file(adjusted_path, as_attachment=True, download_name="processed_video.mp4")
+
 
 if __name__ == "__main__":
     app.run(debug=True)

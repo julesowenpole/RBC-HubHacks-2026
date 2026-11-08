@@ -20,9 +20,13 @@ Date Created:  November 5, 2026
     <header class="site-header">
         <a class="logo" aria-label="Fish Eye home">Fish Eye<span class="logo-dot">.</span></a>
 
-        <div id="upload">
-            <input type="file" id="video-upload" accept="video/*" hidden>
-            <button type="button" class="upload-btn" id="upload-btn">Upload video</button>
+        <div class="header-actions">
+            <div id="upload">
+                <input type="file" id="video-upload" accept="video/*" hidden>
+                <button type="button" class="upload-btn" id="upload-btn">Upload video</button>
+            </div>
+
+            <button type="button" class="save-btn" id="download-video-btn" disabled>Save video</button>
         </div>
     </header>
 
@@ -32,7 +36,6 @@ Date Created:  November 5, 2026
             <div class="player" id="player">
                 <div class="video-frame">
                     <video id="video-player" poster="{{ url_for('static', filename='images/upload-prompt.png') }}"></video>
-                    <canvas id="overlay"></canvas>
                 </div>
 
                 <div class="player-bar" id="player-bar" data-ready="false">
@@ -68,10 +71,6 @@ Date Created:  November 5, 2026
 
                     <p class="timeline-status" id="timeline-status">Upload a video to see its timeline.</p>
                 </div>
-            </div>
-
-            <div id="save-video">
-                <button id="download-video-btn" disabled>Save Video</button>
             </div>
 
             <div class="controls">
