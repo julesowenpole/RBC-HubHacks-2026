@@ -99,30 +99,38 @@ Date Created:  November 5, 2026
             </div>
         </section>
 
-        <aside class="info-panel" aria-label="Detection results">
-            <h2>Number of fish detected in current video</h2>
-            <div class="stat">
-                <span class="stat-value" id="fish-count">&mdash;</span>
-            </div>
-            <p class="info-note" id="info-text">Counts will appear here once a video is analysed.</p>
-        </aside>
+        <div class="sidebar">
+            <aside class="info-panel" aria-label="Detection results">
+                <h2>Number of fish detected in current video</h2>
+                <div class="stat">
+                    <span class="stat-value" id="fish-count">&mdash;</span>
+                </div>
+                <p class="info-note" id="info-text">Counts will appear here once a video is analysed.</p>
+            </aside>
 
-        
-        <aside class="identification-panel" aria-label="Identification controls">
-            <h2>Observed fish</h2>
-            <div id="fish-list">
-                <span class="stat-value" id="fish-count">&mdash;</span>
-                <ul id="observed-fish">
+            <aside class="identification-panel" aria-label="Identification controls">
+                <div class="panel-head">
+                    <h2>Observed fish</h2>
+                </div>
 
-                </ul>
-            </div>
-            <div id="add-fish">
-                <input type="text" id="fish-input" placeholder="Enter fish name"/>
-                <button id="add-fish-btn">Add Fish</button>
-            </div>
+                <div class="add-fish" id="add-fish">
+                    <input type="text" id="fish-input" placeholder="Fish name or species" aria-label="Fish name" autocomplete="off">
+                    <button type="button" class="btn-primary" id="add-fish-btn">Add fish</button>
+                </div>
+                <div class="fish-list" id="fish-list">
+                    <div class="empty-state" id="fish-empty">
+                        <p class="empty-title">No fish logged yet</p>
+                        <p class="empty-hint">Pause on a fish, type its name and press Add fish.</p>
+                    </div>
+                    <ul id="observed-fish"></ul>
+                </div>
 
-            <button id="export-fish-btn">Export Fish Data</button>
-        </aside>
+                <button type="button" class="btn-outline" id="export-fish-btn" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg>
+                    Export to Excel
+                </button>
+            </aside>
+        </div>
     </main>
 
     <script src="../static/script.js"></script>
