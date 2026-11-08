@@ -1,30 +1,16 @@
 import os
-import sys
 from collections import Counter
 
 import cv2
 from flask import Flask, render_template, request, jsonify
 from ultralytics import YOLO
 
-# function to get the correct path for yolo.pt (for the app version)
-def resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS
-    except AttributeError:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-
-app = Flask(
-    __name__, 
-    template_folder=resource_path("templates"),
-    static_folder=resource_path("static")
-)
+app = Flask(__name__)
 OUTPUT_PATH = "static/output_clahe.mp4"
 
 # ---------- fish detection settings ----------
 # NOTE: stock COCO weights have no "fish" class - use fish-trained weights.
-MODEL_PATH = resource_path("yolo.pt")
+MODEL_PATH = "yolo.pt"
 CONF = 0.25          # lower = more detections, more false positives
 IOU = 0.5
 IMGSZ = 960          # larger helps with small/distant fish (slower)
@@ -32,6 +18,11 @@ TRACKER = "bytetrack.yaml"
 MIN_HITS = 5         # frames a track must exist before it is drawn/counted
 BOX_COLOUR = (75, 175, 236)   # BGR of --amber (#ECAF4B)
 BOX_THICKNESS = 2
+
+# ---------- timeline segment settings (seconds) ----------
+SEG_GAP = 0.75       # fish missing for less than this -> same segment
+SEG_MIN = 0.4        # drop segments shorter than this (flicker)
+SEG_PAD = 0.25       # extra time before/after so the jump lands just before the fish
 
 model = YOLO(MODEL_PATH)
 
@@ -44,6 +35,36 @@ def drawBox(frame, x1, y1, x2, y2, label):
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (26, 54, 68), 1, cv2.LINE_AA)
 
 
+def buildSegments(fish_frames, fps, total_frames):
+    """Turn the frame numbers that had a fish into [{start, end}] in seconds."""
+    if not fish_frames:
+        return []
+    duration = total_frames / fps
+    max_gap = max(1, round(SEG_GAP * fps))
+
+    # group frames that are close together
+    runs = []
+    start = prev = fish_frames[0]
+    for f in fish_frames[1:]:
+        if f - prev > max_gap:
+            runs.append((start, prev))
+            start = f
+        prev = f
+    runs.append((start, prev))
+
+    segments = []
+    for a, b in runs:
+        s, e = a / fps, (b + 1) / fps
+        if e - s < SEG_MIN:
+            continue
+        s, e = max(0.0, s - SEG_PAD), min(duration, e + SEG_PAD)
+        if segments and s <= segments[-1]["end"]:      # padding made them touch
+            segments[-1]["end"] = round(e, 3)
+        else:
+            segments.append({"start": round(s, 3), "end": round(e, 3)})
+    return segments
+
+
 def processVideo(input_video, output_video):
     videoCap = cv2.VideoCapture(input_video)
 
@@ -53,7 +74,7 @@ def processVideo(input_video, output_video):
     # Get video properties
     width = int(videoCap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(videoCap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = videoCap.get(cv2.CAP_PROP_FPS)
+    fps = videoCap.get(cv2.CAP_PROP_FPS) or 30.0   # some files report 0
 
     # Create output video writer
     fourcc = cv2.VideoWriter_fourcc(*'avc1')
@@ -71,6 +92,8 @@ def processVideo(input_video, output_video):
     # reset tracker state so IDs/counts don't carry over from the last upload
     model.predictor = None
     hits = Counter()  # track id -> number of frames seen
+    fish_frames = []  # frame numbers with at least one confirmed fish
+    frame_idx = 0
 
     while True:
 
@@ -96,6 +119,7 @@ def processVideo(input_video, output_video):
                                  verbose=False)[0]
 
         boxes = detections.boxes
+        fish_here = False
         if boxes is not None and boxes.id is not None:
             xyxy = boxes.xyxy.cpu().numpy().astype(int)
             ids = boxes.id.cpu().numpy().astype(int)
@@ -103,17 +127,23 @@ def processVideo(input_video, output_video):
                 hits[tid] += 1
                 if hits[tid] >= MIN_HITS:  # hides one-frame flickers
                     drawBox(result, x1, y1, x2, y2, f"fish {tid}")
+                    fish_here = True
+        if fish_here:
+            fish_frames.append(frame_idx)
 
         # add the tagged frame to the output video
         writer.write(result)
+        frame_idx += 1
 
     # cleanup
     videoCap.release()
     writer.release()
 
     fish_count = sum(1 for n in hits.values() if n >= MIN_HITS)
-    print(f"Saved enhanced video to {output_video} ({fish_count} fish)")
-    return fish_count
+    segments = buildSegments(fish_frames, fps, frame_idx)
+    print(f"Saved enhanced video to {output_video} "
+          f"({fish_count} fish, {len(segments)} segments)")
+    return fish_count, segments
 
 
 # homepage (visible to the user)
@@ -130,11 +160,12 @@ def process():
     input_path = "uploads/input.mp4"
     file.save(input_path)
 
-    fish_count = processVideo(input_path, OUTPUT_PATH)
+    fish_count, segments = processVideo(input_path, OUTPUT_PATH)
 
     return jsonify({
         "video_url": OUTPUT_PATH,
-        "fish_count": fish_count
+        "fish_count": fish_count,
+        "segments": segments      # [{start, end}] seconds with fish on screen
     })
 
 

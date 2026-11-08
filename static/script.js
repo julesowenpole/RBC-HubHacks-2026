@@ -1,6 +1,7 @@
 // constants for video upload and play functionality
 const videoInput = document.getElementById("video-upload");
 const videoPlayer = document.getElementById("video-player");
+const videoPlaceholder = document.getElementById("video-placeholder");
 const uploadButton = document.getElementById("upload-btn");
 
 // constants for filters
@@ -64,6 +65,26 @@ async function loadVideo() {
 
 let currentURL = null;
 
+// fish segments from the last analysis, [{ start, end }] in seconds.
+// playbar.js draws these when the video's metadata has loaded.
+let pendingSegments = [];
+const SEGMENTS_KEY = "fisheye-segments";
+
+function rememberSegments(list) {
+    pendingSegments = list || [];
+    try {
+        localStorage.setItem(SEGMENTS_KEY, JSON.stringify(pendingSegments));
+    } catch (err) { /* storage blocked: segments just won't survive a reload */ }
+}
+
+function recallSegments() {
+    try {
+        return JSON.parse(localStorage.getItem(SEGMENTS_KEY)) || [];
+    } catch (err) {
+        return [];
+    }
+}
+
 function showVideo(file) {
     // free the previous object URL so memory is not leaked
     if (currentURL) {
@@ -71,6 +92,10 @@ function showVideo(file) {
     }
     currentURL = URL.createObjectURL(file);
     videoPlayer.src = currentURL;
+
+    // show the player and hide the "No video loaded" message
+    videoPlayer.hidden = false;
+    videoPlaceholder.hidden = true;
 }
 
 // event listeners for video upload
@@ -83,7 +108,7 @@ videoInput.addEventListener("change", async (event) => {
     const file = event.target.files[0];
     const formData = new FormData();
     formData.append("video", file);
-    videoPlayer.poster = "../static/images/loading-bar.png";
+    videoPlayer.poster = "../static/loading-bar.png";
 
     const response = await fetch("/process-video", {
         method: "POST",
@@ -96,6 +121,9 @@ videoInput.addEventListener("change", async (event) => {
     document.getElementById("fish-count").textContent = data.fish_count;
     document.getElementById("info-text").textContent = "Fish are boxed in the video.";
 
+    // must be set before the new src loads, so loadedmetadata can draw them
+    rememberSegments(data.segments);
+
     bar.style.display = 'block';
     console.log(data.video_url); // confirmation of specified video url
     videoPlayer.poster = ""
@@ -103,6 +131,7 @@ videoInput.addEventListener("change", async (event) => {
     // change source of the video and get the page ready to play it
     videoPlayer.src = data.video_url + "?t=" + Date.now();
     videoPlayer.hidden = false;
+    videoPlaceholder.hidden = true;
 
     sliders.forEach(function(slider) {
         slider.value = defaultFor(slider);
@@ -116,7 +145,7 @@ videoInput.addEventListener("change", async (event) => {
         console.error("Could not save video:", err);
     }
 
-    this.value = ""; // allows re-selecting the same file
+    event.target.value = ""; // allows re-selecting the same file
 });
 
 // restore the saved video on page load
@@ -124,6 +153,7 @@ videoInput.addEventListener("change", async (event) => {
     try {
         const file = await loadVideo();
         if (file) {
+            pendingSegments = recallSegments();   // same video, so the times still match
             showVideo(file);
         }
     } catch (err) {

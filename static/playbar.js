@@ -12,11 +12,12 @@ const timelineTrack = document.getElementById("timeline-track");
 const motionLayer = document.getElementById("motion-layer");
 const timelineProgress = document.getElementById("timeline-progress");
 const playhead = document.getElementById("playhead");
+const hoverTip = document.getElementById("hover-tip");
 const timelineStatus = document.getElementById("timeline-status");
 
-// Placeholder highlights so the bar can be tested before detection exists.
-// Set to false (and call setMotionSegments() with real data) when detection is ready.
-const USE_DEMO_SEGMENTS = true;
+// Placeholder highlights for testing the bar without the backend.
+// When false, the segments come from /process-video (pendingSegments in script.js).
+const USE_DEMO_SEGMENTS = false;
 
 let segments = [];      // [{ start, end }] in seconds, sorted, no overlaps
 let activeIndex = -1;   // segment the playhead is currently inside
@@ -152,6 +153,14 @@ function timeFromPointer(e) {
     return (x / rect.width) * (videoPlayer.duration || 0);
 }
 
+function showTip(e) {
+    const rect = timeline.getBoundingClientRect();
+    const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
+    hoverTip.style.left = x + "px";
+    hoverTip.textContent = formatTime(timeFromPointer(e));
+    hoverTip.classList.add("show");
+}
+
 function seekBy(seconds) {
     const duration = videoPlayer.duration || 0;
     videoPlayer.currentTime = Math.min(Math.max(videoPlayer.currentTime + seconds, 0), duration);
@@ -165,6 +174,7 @@ timeline.addEventListener("pointerdown", function(e) {
 });
 
 timeline.addEventListener("pointermove", function(e) {
+    showTip(e);
     if (dragging) {
         videoPlayer.currentTime = timeFromPointer(e);
         updateTimeline();
@@ -173,6 +183,7 @@ timeline.addEventListener("pointermove", function(e) {
 
 timeline.addEventListener("pointerup", () => { dragging = false; });
 timeline.addEventListener("pointercancel", () => { dragging = false; });
+timeline.addEventListener("pointerleave", () => hoverTip.classList.remove("show"));
 
 timeline.addEventListener("keydown", function(e) {
     const big = e.shiftKey ? 5 : 1;
@@ -267,7 +278,8 @@ videoPlayer.addEventListener("loadedmetadata", function() {
             { start: d * 0.82, end: d * 0.88 }
         ]);
     } else {
-        setMotionSegments([]);
+        // real detections: times where at least one confirmed fish is on screen
+        setMotionSegments(pendingSegments);
     }
     updateTimeline();
     updateStatus();
