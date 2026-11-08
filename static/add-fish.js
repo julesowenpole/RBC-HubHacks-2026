@@ -1,10 +1,13 @@
 const fishInput = document.getElementById("fish-input");
 const addFishBtn = document.getElementById("add-fish-btn");
 const fishList = document.getElementById("fish-list");
+const exportFishBtn = document.getElementById("export-fish-btn");
 
 const fishData = {};
 
 addFishBtn.addEventListener("click", addFish);
+
+exportFishBtn.addEventListener("click", exportFishData);
 
 // adds a fish to the list of fish that can be exported. If the fish has already been added, nothing happens. 
 function addFish() {
@@ -88,4 +91,35 @@ function updateFishDisplay(fishName) {
 function addTimeStamp(fishName){
     // timestamp is stored in videoPlayer.currentTime
     fishData[fishName].timestamps.push(videoPlayer.currentTime);
+}
+
+// function to export fish data by calling the flask endpoint
+async function exportFishData() {
+
+    const response = await fetch("/export-fish", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(fishData)
+    });
+
+    if (!response.ok) {
+        alert("Error exporting fish data.");
+        return;
+    }
+
+    const blob = await response.blob();
+
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "fish_sightings.xlsx";
+
+    document.body.appendChild(a);
+    a.click();
+
+    a.remove();
+    window.URL.revokeObjectURL(url);
 }

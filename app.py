@@ -1,9 +1,9 @@
 import os
 from collections import Counter
-
 import cv2
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 from ultralytics import YOLO
+import pandas as pd
 
 app = Flask(__name__)
 OUTPUT_PATH = "static/output_clahe.mp4"
@@ -152,7 +152,7 @@ def home():
     return render_template("index.html")
 
 
-# this is the endpoint that handles video send and receive (not visible to the user)
+# endpoint handling video send and receive (not visible to the user)
 @app.route("/process-video", methods=["POST"])
 def process():
     file = request.files["video"]
@@ -168,6 +168,23 @@ def process():
         "segments": segments      # [{start, end}] seconds with fish on screen
     })
 
+# endpoint handling exporting of fish data as excel spreadsheet (not visible to the user)
+@app.route("/export-fish", methods=["POST"])
+def exportFish():
+    fish_data = request.json
+
+    rows = []
+    for fish_name, fish_info in fish_data.items():
+        for timestamp in fish_info["timestamps"]:
+            rows.append({
+                "Fish": fish_name,
+                "Timestamp (seconds)": timestamp
+            })
+    df = pd.DataFrame(rows)
+
+    EXCEL_PATH = "fish_sightings.xlsx"
+    df.to_excel(EXCEL_PATH, index=False)
+    return send_file(EXCEL_PATH, as_attachment=True, download_name=EXCEL_PATH)
 
 if __name__ == "__main__":
     app.run(debug=True)
