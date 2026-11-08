@@ -25,6 +25,12 @@ const DB_NAME = "fisheye-db";
 const STORE = "videos";
 const KEY = "current-video";
 
+//constants for frame overlay
+const vid = videoPlayer;
+const canvas = document.getElementById("overlay");
+const ctx = canvas.getContext("2d");
+let overlayData = null;
+
 // constant for video download button
 const exportVidBtn = document.getElementById("download-video-btn");
 
@@ -98,7 +104,6 @@ function showVideo(file) {
 
     // show the player and hide the "No video loaded" message
     videoPlayer.hidden = false;
-    videoPlaceholder.hidden = true;
 }
 
 // event listeners for video upload
@@ -119,6 +124,9 @@ videoInput.addEventListener("change", async (event) => {
     });
 
     const data = await response.json();
+    overlayData = data;
+    console.log("frames with boxes:", data.detections.filter(d => d.length).length,
+            "fps:", data.fps, "size:", data.width, data.height);
     // will only proceed beyond this point when the video has finished processing
 
     document.getElementById("fish-count").textContent = data.fish_count;
@@ -135,14 +143,13 @@ videoInput.addEventListener("change", async (event) => {
     // change source of the video and get the page ready to play it
     videoPlayer.src = data.video_url + "?t=" + Date.now();
     videoPlayer.hidden = false;
-    videoPlaceholder.hidden = true;
 
     sliders.forEach(function(slider) {
         slider.value = defaultFor(slider);
     });
     applyFilters();
 
-    // this is for indexedDB purposes
+    // for indexedDB purposes
     try {
         await saveVideo(file);
     } catch (err) {
@@ -152,18 +159,60 @@ videoInput.addEventListener("change", async (event) => {
     event.target.value = ""; // allows re-selecting the same file
 });
 
-// restore the saved video on page load
-(async function restore() {
-    try {
-        const file = await loadVideo();
-        if (file) {
-            pendingSegments = recallSegments();   // same video, so the times still match
-            showVideo(file);
-        }
-    } catch (err) {
-        console.error("Could not load saved video:", err);
-    }
-})();
+function loop() {
+  draw();
+  if (vid.paused || vid.ended) return;
+  if ("requestVideoFrameCallback" in vid) vid.requestVideoFrameCallback(loop);
+  else requestAnimationFrame(loop);
+}
+
+vid.addEventListener("play", loop);
+vid.addEventListener("seeked", draw);
+vid.addEventListener("pause", draw);
+vid.addEventListener("loadedmetadata", draw);
+window.addEventListener("resize", draw);
+document.addEventListener("fullscreenchange", draw);
+
+function draw() {
+  if (!overlayData) return;
+
+  // match the canvas to the displayed video size
+  canvas.width = vid.clientWidth;
+  canvas.height = vid.clientHeight;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // work out which frame is on screen and get its boxes
+  const frame = Math.floor(vid.currentTime * overlayData.fps);
+  const boxes = overlayData.detections[frame] || [];
+
+  // object-fit: contain letterboxes the video, so scale uniformly and offset
+  const vw = overlayData.width, vh = overlayData.height;
+  const scale = Math.min(canvas.width / vw, canvas.height / vh);
+  const offX = (canvas.width  - vw * scale) / 2;
+  const offY = (canvas.height - vh * scale) / 2;
+
+  ctx.strokeStyle = "#ECAF4B";
+  ctx.lineWidth = 2;
+  ctx.font = "12px sans-serif";
+
+  for (const b of boxes) {
+    const x = offX + b.x1 * scale;
+    const y = offY + b.y1 * scale;
+    const w = (b.x2 - b.x1) * scale;
+    const h = (b.y2 - b.y1) * scale;
+
+    // the box
+    ctx.strokeRect(x, y, w, h);
+
+    // the label tag above it
+    const label = `fish ${b.id}`;
+    const tw = ctx.measureText(label).width;
+    ctx.fillStyle = "#ECAF4B";
+    ctx.fillRect(x, y - 16, tw + 8, 16);
+    ctx.fillStyle = "#443618";
+    ctx.fillText(label, x + 4, y - 4);
+  }
+}
 
 // apply the slider values as CSS filters on the video
 function applyFilters() {

@@ -36,6 +36,7 @@ Date Created:  November 5, 2026
             <div class="player" id="player">
                 <div class="video-frame">
                     <video id="video-player" poster="{{ url_for('static', filename='images/upload-prompt.png') }}"></video>
+                    <canvas id="overlay"></canvas>
                 </div>
 
                 <div class="player-bar" id="player-bar" data-ready="false">

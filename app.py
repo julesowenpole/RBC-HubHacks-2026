@@ -19,7 +19,7 @@ EXPORT_DIR = os.path.join(app.root_path, "exports")   # spreadsheets and adjuste
 MODEL_PATH = "yolo.pt"
 CONF = 0.25          # lower = more detections, more false positives
 IOU = 0.5
-IMGSZ = 960          # larger helps with small/distant fish (slower)
+IMGSZ = 512          # larger helps with small/distant fish (slower)
 TRACKER = "bytetrack.yaml"
 MIN_HITS = 5         # frames a track must exist before it is drawn/counted
 BOX_COLOUR = (75, 175, 236)   # BGR of --amber (#ECAF4B)
@@ -31,15 +31,6 @@ SEG_MIN = 0.4        # drop segments shorter than this (flicker)
 SEG_PAD = 0.25       # extra time before/after so the jump lands just before the fish
 
 model = YOLO(MODEL_PATH)
-
-
-def drawBox(frame, x1, y1, x2, y2, label):
-    cv2.rectangle(frame, (x1, y1), (x2, y2), BOX_COLOUR, BOX_THICKNESS)
-    (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-    cv2.rectangle(frame, (x1, y1 - th - 8), (x1 + tw + 6, y1), BOX_COLOUR, -1)
-    cv2.putText(frame, label, (x1 + 3, y1 - 5),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (26, 54, 68), 1, cv2.LINE_AA)
-
 
 def buildSegments(fish_frames, fps, total_frames):
     """Turn the frame numbers that had a fish into [{start, end}] in seconds."""
@@ -101,6 +92,11 @@ def processVideo(input_video, output_video):
     fish_frames = []  # frame numbers with at least one confirmed fish
     frame_idx = 0
 
+
+    detections_by_frame = []   # one entry per frame
+
+
+
     while True:
 
         ret, frame = videoCap.read()
@@ -126,16 +122,22 @@ def processVideo(input_video, output_video):
 
         boxes = detections.boxes
         fish_here = False
+        frame_boxes = []
         if boxes is not None and boxes.id is not None:
             xyxy = boxes.xyxy.cpu().numpy().astype(int)
             ids = boxes.id.cpu().numpy().astype(int)
             for (x1, y1, x2, y2), tid in zip(xyxy, ids):
                 hits[tid] += 1
-                if hits[tid] >= MIN_HITS:  # hides one-frame flickers
-                    drawBox(result, x1, y1, x2, y2, f"fish {tid}")
+                if hits[tid] >= MIN_HITS:
+                    frame_boxes.append({
+                        "id": int(tid),
+                        "x1": int(x1), "y1": int(y1),
+                        "x2": int(x2), "y2": int(y2),
+                    })
                     fish_here = True
         if fish_here:
             fish_frames.append(frame_idx)
+        detections_by_frame.append(frame_boxes)
 
         # add the tagged frame to the output video
         writer.write(result)
@@ -149,7 +151,7 @@ def processVideo(input_video, output_video):
     segments = buildSegments(fish_frames, fps, frame_idx)
     print(f"Saved enhanced video to {output_video} "
           f"({fish_count} fish, {len(segments)} segments)")
-    return fish_count, segments
+    return fish_count, segments, detections_by_frame, fps, width, height
 
 
 # homepage (visible to the user)
@@ -167,12 +169,16 @@ def process():
     file.save(input_path)
 
     os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
-    fish_count, segments = processVideo(input_path, OUTPUT_FILE)
+    fish_count, segments, dets, fps, w, h = processVideo(input_path, OUTPUT_FILE)
 
     return jsonify({
         "video_url": OUTPUT_PATH,
         "fish_count": fish_count,
-        "segments": segments      # [{start, end}] seconds with fish on screen
+        "segments": segments,
+        "detections": dets,
+        "fps": fps,
+        "width": w,
+        "height": h,
     })
 
 # endpoint handling exporting of fish data as excel spreadsheet (not visible to the user)

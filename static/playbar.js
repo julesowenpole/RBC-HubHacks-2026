@@ -1,4 +1,3 @@
-
 // ---------- Player bar + motion timeline ----------
 const player = document.getElementById("player");
 const playerBar = document.getElementById("player-bar");
@@ -173,7 +172,6 @@ timeline.addEventListener("pointerdown", function(e) {
 });
 
 timeline.addEventListener("pointermove", function(e) {
-    showTip(e);
     if (dragging) {
         videoPlayer.currentTime = timeFromPointer(e);
         updateTimeline();
@@ -182,7 +180,6 @@ timeline.addEventListener("pointermove", function(e) {
 
 timeline.addEventListener("pointerup", () => { dragging = false; });
 timeline.addEventListener("pointercancel", () => { dragging = false; });
-timeline.addEventListener("pointerleave", () => hoverTip.classList.remove("show"));
 
 timeline.addEventListener("keydown", function(e) {
     const big = e.shiftKey ? 5 : 1;
