@@ -3,8 +3,16 @@ const addFishBtn = document.getElementById("add-fish-btn");
 const fishList = document.getElementById("observed-fish");
 const fishEmpty = document.getElementById("fish-empty");
 const exportFishBtn = document.getElementById("export-fish-btn");
-const observedTotal = document.getElementById("observed-total");
+const currentTimeLabel = document.getElementById("current-time");
+
 const fishData = {};
+
+// if index.html and this file ever get out of step, say exactly which element is missing instead of failing silently
+const missingElements = ["fish-input", "add-fish-btn", "observed-fish", "fish-empty", "export-fish-btn", "current-time"]
+    .filter((id) => !document.getElementById(id));
+if (missingElements.length) {
+    console.error("add-fish.js: these ids are missing from index.html:", missingElements.join(", "));
+}
 
 addFishBtn.addEventListener("click", addFish);
 
@@ -15,8 +23,12 @@ fishInput.addEventListener("keydown", (event) => {
     }
 });
 
-exportFishBtn.addEventListener("click", exportFishData);
+exportFishBtn?.addEventListener("click", exportFishData);
 
+// keep the "logged at" time in the panel in step with the video (videoPlayer comes from script.js)
+videoPlayer.addEventListener("timeupdate", updateCurrentTimeLabel);
+videoPlayer.addEventListener("seeked", updateCurrentTimeLabel);
+videoPlayer.addEventListener("loadedmetadata", updateCurrentTimeLabel);
 
 // turns a time in seconds into m:ss for display
 function formatTime(seconds) {
@@ -24,6 +36,12 @@ function formatTime(seconds) {
     const mins = Math.floor(total / 60);
     const secs = String(total % 60).padStart(2, "0");
     return `${mins}:${secs}`;
+}
+
+function updateCurrentTimeLabel() {
+    if (currentTimeLabel) {
+        currentTimeLabel.textContent = formatTime(videoPlayer.currentTime);
+    }
 }
 
 // finds the list item for a fish (data attribute used instead of an id so odd names can't clash with other ids)
@@ -105,6 +123,7 @@ function createFishElement(fishName) {
     li.querySelector(".remove-btn").addEventListener("click", () => {
         delete fishData[fishName];
         li.remove();
+        updateSummary();
     });
 
     fishList.appendChild(li);
@@ -123,6 +142,19 @@ function updateFishDisplay(fishName) {
         li.querySelector(".fish-seen").textContent =
             lastSeen === undefined ? "No sightings" : `Last logged at ${formatTime(lastSeen)}`;
     }
+
+    updateSummary();
+}
+
+// function to update the empty message and the export button
+function updateSummary() {
+    const names = Object.keys(fishData);
+    if (fishEmpty) {
+        fishEmpty.hidden = names.length > 0;
+    }
+    if (exportFishBtn) {
+        exportFishBtn.disabled = names.length === 0;
+    }
 }
 
 // function to add the current timestamp whenever a fish is sighted
@@ -134,16 +166,26 @@ function addTimeStamp(fishName){
 // function to export fish data by calling the flask endpoint
 async function exportFishData() {
 
-    const response = await fetch("/export-fish", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(fishData)
-    });
+    let response;
+    try {
+        response = await fetch("/export-fish", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(fishData)
+        });
+    } catch (err) {
+        // the server could not be reached at all
+        console.error("Export failed:", err);
+        alert("Could not reach the server to export fish data. Is the Flask app running?");
+        return;
+    }
 
     if (!response.ok) {
-        alert("Error exporting fish data.");
+        // the status tells you what went wrong: 404 = no /export-fish route, 500 = error in the Flask code
+        console.error("Export failed with status", response.status);
+        alert(`Error exporting fish data (server returned ${response.status}).`);
         return;
     }
 
@@ -161,3 +203,5 @@ async function exportFishData() {
     a.remove();
     window.URL.revokeObjectURL(url);
 }
+
+updateSummary();

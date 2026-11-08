@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from collections import Counter
 import cv2
 from flask import Flask, render_template, request, jsonify, send_file
@@ -7,6 +8,9 @@ import pandas as pd
 
 app = Flask(__name__)
 OUTPUT_PATH = "static/output_clahe.mp4"
+
+# spreadsheets from "Export to Excel" are saved here, next to app.py
+EXPORT_DIR = os.path.join(app.root_path, "exports")
 
 # ---------- fish detection settings ----------
 # NOTE: stock COCO weights have no "fish" class - use fish-trained weights.
@@ -171,20 +175,59 @@ def process():
 # endpoint handling exporting of fish data as excel spreadsheet (not visible to the user)
 @app.route("/export-fish", methods=["POST"])
 def exportFish():
-    fish_data = request.json
+    fish_data = request.get_json(silent=True)
 
-    rows = []
+    if not fish_data:
+        return jsonify({"error": "No fish data received"}), 400
+
+    # sheet 1: one row per sighting, with the time in the video
+    observe_rows = []
     for fish_name, fish_info in fish_data.items():
         for timestamp in fish_info["timestamps"]:
-            rows.append({
+            observe_rows.append({
                 "Fish": fish_name,
                 "Timestamp (seconds)": timestamp
             })
-    df = pd.DataFrame(rows)
 
-    EXCEL_PATH = "fish_sightings.xlsx"
-    df.to_excel(EXCEL_PATH, index=False)
-    return send_file(EXCEL_PATH, as_attachment=True, download_name=EXCEL_PATH)
+    # explicit columns so the sheet still has headers if every sighting was removed
+    observe_df = pd.DataFrame(observe_rows, columns=["Fish", "Timestamp (seconds)"])
+
+    # sheet 2: one row per fish with its count
+    summary_rows = []
+    for fish_name, fish_info in fish_data.items():
+        summary_rows.append({
+            "Fish": fish_name,
+            "Count": fish_info["count"]
+        })
+
+    summary_df = pd.DataFrame(summary_rows, columns=["Fish", "Count"])
+
+    # save both sheets into one spreadsheet on disk.
+    # the path is built from this file's folder (not the folder Flask was started from),
+    # so to_excel() and send_file() always use the same location.
+    # the time in the file name means each export is kept and a copy that is open in Excel can't block the next one
+    os.makedirs(EXPORT_DIR, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    excel_path = os.path.join(EXPORT_DIR, f"fish_data_{stamp}.xlsx")
+
+    with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+        observe_df.to_excel(
+            writer,
+            sheet_name="Fish observed",
+            index=False
+        )
+
+        summary_df.to_excel(
+            writer,
+            sheet_name="Count of fish",
+            index=False
+        )
+
+    print(f"Saved fish data to {excel_path}")
+
+    # the browser still downloads it as fish_data.xlsx
+    return send_file(excel_path, as_attachment=True, download_name="fish_data.xlsx")
+
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -522,6 +522,8 @@ input[type="range"]:focus-visible { outline-offset: 0; border-radius: 4px; }
     text-align: center;
 }
 .empty-state[hidden] { display: none; }
+/* belt and braces: also hide it purely in CSS as soon as the list has a fish in it */
+.fish-list:has(#observed-fish li) .empty-state { display: none; }
 .empty-title {
     margin: 0 0 4px;
     font-family: var(--font-label);
