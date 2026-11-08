@@ -108,7 +108,7 @@ videoInput.addEventListener("change", async (event) => {
     const file = event.target.files[0];
     const formData = new FormData();
     formData.append("video", file);
-    videoPlayer.poster = "../static/loading-bar.png";
+    videoPlayer.poster = "../static/images/loading-bar.png";
 
     const response = await fetch("/process-video", {
         method: "POST",
