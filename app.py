@@ -173,17 +173,41 @@ def process():
 def exportFish():
     fish_data = request.json
 
-    rows = []
+    observe_rows = []
     for fish_name, fish_info in fish_data.items():
         for timestamp in fish_info["timestamps"]:
-            rows.append({
+            observe_rows.append({
                 "Fish": fish_name,
                 "Timestamp (seconds)": timestamp
             })
-    df = pd.DataFrame(rows)
 
-    EXCEL_PATH = "fish_sightings.xlsx"
-    df.to_excel(EXCEL_PATH, index=False)
+    observe_df = pd.DataFrame(observe_rows)
+
+    # sheet for 
+    summary_rows = []
+    for fish_name, fish_info in fish_data.items():
+        summary_rows.append({
+            "Fish": fish_name,
+            "Count": fish_info["count"]
+        })
+
+    summary_df = pd.DataFrame(summary_rows)
+
+    # join both sheets into the same spreadsheet
+    EXCEL_PATH = "fish_data.xlsx"
+    with pd.ExcelWriter(EXCEL_PATH, engine="openpyxl") as writer:
+        observe_df.to_excel(
+            writer,
+            sheet_name="Fish observed",
+            index=False
+        )
+
+        summary_df.to_excel(
+            writer,
+            sheet_name="Count of fish",
+            index=False
+        )
+
     return send_file(EXCEL_PATH, as_attachment=True, download_name=EXCEL_PATH)
 
 if __name__ == "__main__":
