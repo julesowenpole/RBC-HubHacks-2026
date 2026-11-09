@@ -16,7 +16,7 @@ to start the app. You can then open the app in a browser using the indicated lin
 
 To build the app yourself and run it locally as an executable, use the following command for Powershell: 
 
-```python -m PyInstaller --onedir --collect-all torchvision --collect-all ultralytics --add-data "yolo.pt;." --add-data "templates;templates" --add-data "static;static" launcher.py```
+``` python -m PyInstaller --onedir --collect-all torchvision --collect-all ultralytics --add-data "yolo.pt;." --add-data "templates;templates" --add-data "static;static" launcher.py```
 
 ### End users
 

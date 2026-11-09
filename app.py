@@ -27,7 +27,7 @@ OUTPUT_PATH = "static/output_clahe.mp4"      # url the browser uses to play the 
 # full paths built from this file's folder, so saving and sending always use the same place
 # no matter which folder Flask was started from
 OUTPUT_FILE = os.path.join(app.root_path, "static", "output_clahe.mp4")
-EXPORT_DIR = os.path.join(app.root_path, "exports")   # spreadsheets and adjusted videos are saved here
+EXPORT_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "FishEye")
 
 # ---------- fish detection settings ----------
 # NOTE: stock COCO weights have no "fish" class - use fish-trained weights.
@@ -35,7 +35,7 @@ MODEL_PATH = resource_path("yolo.pt")
 CONF = 0.25          # lower = more detections, more false positives
 IOU = 0.5
 IMGSZ = 960          # larger helps with small/distant fish (slower)
-TRACKER = resource_path("bytetrack.yaml")
+TRACKER = "bytetrack.yaml"
 MIN_HITS = 5         # frames a track must exist before it is drawn/counted
 BOX_COLOUR = (75, 175, 236)   # BGR of --amber (#ECAF4B)
 BOX_THICKNESS = 2
@@ -283,15 +283,17 @@ def exportVideo():
     contrast = max(-100, min(100, request.args.get("contrast", 0, type=float)))
     exposure = max(-100, min(100, request.args.get("exposure", 0, type=float)))
 
-    # sliders untouched: send the processed video as it is
-    if brightness == 0 and contrast == 0 and exposure == 0:
-        return send_file(OUTPUT_FILE, as_attachment=True, download_name="processed_video.mp4")
-
+    # create fisheye directory if needed and export the video with a timestamp
     os.makedirs(EXPORT_DIR, exist_ok=True)
-    adjusted_path = os.path.join(EXPORT_DIR, "adjusted_video.mp4")
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    adjusted_path = os.path.join(EXPORT_DIR, f"processed_video_{stamp}.mp4")
     adjustVideo(OUTPUT_FILE, adjusted_path, brightness, contrast, exposure)
 
-    return send_file(adjusted_path, as_attachment=True, download_name="processed_video.mp4")
+    # sliders untouched: send the processed video as it is
+    if brightness == 0 and contrast == 0 and exposure == 0:
+        return send_file(OUTPUT_FILE, as_attachment=True, download_name=os.path.basename(adjusted_path))
+
+    return send_file(adjusted_path, as_attachment=True, download_name=os.path.basename(adjusted_path))
 
 
 if __name__ == "__main__":
