@@ -12,13 +12,11 @@ The program runs as a Flask app and requires the installation of Python 3.0 or h
 
 `python app.py`
 
-to start the app. You can then open the app in a browser using the indicated link. 
+to start the app. You can then open the app locally in a browser using the indicated link. 
 
 To build the app yourself and run it locally as an executable, navigate to this directory and use the following command for Powershell: 
 
 ```python -m PyInstaller --onedir --collect-all torchvision --collect-all ultralytics --add-data "yolo.pt;." --add-data "templates;templates" --add-data "static;static" FishEye.py```
-
-The full source for the app can be found in dist/FishEye/_internal. 
 
 ### End users
 
