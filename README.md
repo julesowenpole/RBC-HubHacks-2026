@@ -24,11 +24,7 @@ The full source for the app can be found in dist/FishEye/_internal.
 
 We are currently troubleshooting installation issues on machines where Python 3 is not installed. Until the root cause of these issues is sorted out, please follow the instructions [here](https://www.python.org/downloads/) to download and set up Python 3. 
 
-Once Python 3 is installed, you will be able to use the app by following these instructions: 
-1. Navigate to [this file](https://github.com/julesowenpole/RBC-HubHacks-2026/blob/main/dist/FishEye.zip).
-2. Click the download button in the upper right corner of the file. 
-3. Unzip the folder once it has been downloaded. 
-4. Go inside the folder until you see FishEye.exe. Double click this file and it should start running on your device. 
+Once Python 3 is installed, you will be able to use the app once it has been added to a GitHub release. We will provide further instructions when the release has been published. 
 
 ## Usage
 
